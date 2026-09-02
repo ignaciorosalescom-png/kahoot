@@ -192,6 +192,22 @@ function newCode() {
   return c;
 }
 const AVATAR_COLORS = ["#E2604A","#E0A93C","#43A69C","#8E7CC8","#5B8DD9","#D97DA6","#7FB069","#C9B08A"];
+const EMOJI_POOL = ["🧠","🦷","👁️","👂","👃","🦴","💀","👅"];
+const EMOJI_BLOCK = ["🖕","🍆","🍑","🔞"];
+
+// Toma el primer emoji real de lo que escriba el alumno.
+// Intl.Segmenter mantiene juntas las secuencias compuestas,
+// como las de tono de piel o las unidas con ZWJ.
+function firstEmoji(s) {
+  const raw = String(s || "").trim();
+  if (!raw) return "";
+  let g;
+  try { g = [...new Intl.Segmenter("es", { granularity: "grapheme" }).segment(raw)][0].segment; }
+  catch (e) { g = Array.from(raw)[0]; }
+  if (!g || g.length > 16) return "";
+  if (EMOJI_BLOCK.includes(g)) return "";
+  return /\p{Extended_Pictographic}/u.test(g) ? g : "";
+}
 
 function playerList(room) {
   return [...room.players.values()]
@@ -235,7 +251,7 @@ io.on("connection", socket => {
     const clean = String(name || "").trim().slice(0, 22);
     if (!clean) return cb({ error: "Escribe tu nombre." });
     const col = AVATAR_COLORS.includes(color) ? color : AVATAR_COLORS[Math.floor(Math.random() * 8)];
-    const gl = Number.isInteger(glyph) && glyph >= 0 && glyph < 8 ? glyph : Math.floor(Math.random() * 8);
+    const gl = firstEmoji(glyph) || EMOJI_POOL[Math.floor(Math.random() * EMOJI_POOL.length)];
     room.players.set(socket.id, { name: clean, score: 0, answers: {}, c: col, g: gl });
     socket.join(c);
     socket.data = { role: "player", room: c };
