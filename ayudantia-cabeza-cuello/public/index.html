@@ -114,6 +114,23 @@
 
   /* proyector: todo más grande, solo en pantalla ancha */
   .proj .q{font-size:clamp(1.4rem,2.6vw,2.2rem);line-height:1.35;max-width:40ch;margin-bottom:22px}
+  .proj #secs{font-family:var(--serif);font-size:clamp(1.4rem,2.8vw,2.4rem);color:var(--bone);display:block;line-height:1.1}
+  .proj .count{font-size:clamp(2.4rem,5vw,4rem)}
+  .proj td{font-size:clamp(1.05rem,1.8vw,1.5rem);padding:12px 8px}
+  .proj td:last-child{font-size:clamp(1.4rem,2.6vw,2.2rem)}
+  .proj .tag{font-size:1.05rem;padding:8px 16px}
+
+  /* movimiento del marcador */
+  .count.bump{animation:bump .38s cubic-bezier(.22,.61,.36,1)}
+  @keyframes bump{0%{transform:scale(1)}45%{transform:scale(1.2)}100%{transform:scale(1)}}
+  tr[data-row]{transition:transform .55s cubic-bezier(.22,.61,.36,1)}
+  .q-in>*{animation:lift .3s cubic-bezier(.22,.61,.36,1) both}
+  .q-in>*:nth-child(2){animation-delay:.05s}
+  .q-in>*:nth-child(3){animation-delay:.1s}
+  .q-in>*:nth-child(4){animation-delay:.15s}
+  .q-in>*:nth-child(5){animation-delay:.2s}
+  .q-in>*:nth-child(6){animation-delay:.25s}
+  #snd{padding:8px 12px;font-size:1.1rem;line-height:1}
   .proj h2{font-size:clamp(1.6rem,3vw,2.4rem)}
   .proj .opt{font-size:clamp(1.05rem,1.7vw,1.5rem);padding:18px 20px}
   .proj .colcard{font-size:clamp(1rem,1.5vw,1.35rem);padding:16px 18px}
@@ -173,7 +190,7 @@ function home(){
       <button class="primary" id="h" style="padding:16px">Proyectar la ayudantía</button>
       <button id="j" style="padding:16px">Entrar como alumno</button>
     </div></div>`;
-  document.getElementById("h").onclick=()=>socket.emit("host:create",r=>{role="host";myCode=r.code;});
+  document.getElementById("h").onclick=()=>{ audioReady(); socket.emit("host:create",r=>{role="host";myCode=r.code;}); };
   document.getElementById("j").onclick=joinScreen;
 }
 /* ─────────── Avatares ─────────── */
@@ -201,16 +218,44 @@ function avatar(color,glyph,size){
   return `<span class="av" style="width:${size}px;height:${size}px;background:${c};font-size:${Math.round(size*0.55)}px">${esc(g)}</span>`;
 }
 
-/* ─────────── Puntaje que sube ─────────── */
-const lastScores={};
+/* ─────────── Sonido (solo en el proyector) ─────────── */
+let actx=null, soundOn=true;
+function audioReady(){
+  try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==="suspended") actx.resume(); }catch(e){}
+}
+function tone(freq,dur,type,gain,delay){
+  if(!soundOn||!actx) return;
+  try{
+    const t=actx.currentTime+(delay||0);
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.type=type||"triangle"; o.frequency.value=freq;
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.linearRampToValueAtTime(gain||0.05,t+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+(dur||0.14));
+    o.connect(g); g.connect(actx.destination);
+    o.start(t); o.stop(t+(dur||0.14)+0.03);
+  }catch(e){}
+}
+const S={
+  join:  ()=>tone(660,.10,"triangle",.035),
+  answer:()=>tone(920,.07,"sine",.03),
+  start: ()=>{tone(523,.12);tone(784,.16,"triangle",.05,.10);},
+  reveal:()=>{tone(392,.13);tone(523,.13,"triangle",.05,.09);tone(659,.24,"triangle",.05,.18);},
+  end:   ()=>[523,659,784,1046].forEach((f,i)=>tone(f,.26,"triangle",.05,i*.11))
+};
+
+/* ─────────── Puntaje que sube y filas que se mueven ─────────── */
+const lastScores={}, lastRank={};
+const reduced=()=>window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 function animateScores(){
-  const reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reduce=reduced();
   document.querySelectorAll("[data-score]").forEach(el=>{
     const to=+el.dataset.score, key=el.dataset.who;
     const from=lastScores[key]||0;
     lastScores[key]=to;
     if(reduce||from===to){ el.textContent=to; return; }
-    const t0=performance.now(), dur=700;
+    const t0=performance.now(), dur=950;
     const step=now=>{
       const k=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-k,3);
       el.textContent=Math.round(from+(to-from)*e);
@@ -219,9 +264,26 @@ function animateScores(){
     requestAnimationFrame(step);
   });
 }
+// Las filas parten donde estaban en el ranking anterior y se
+// deslizan hasta su nueva posición.
+function animateRanking(){
+  const rows=[...document.querySelectorAll("tr[data-row]")];
+  const reduce=reduced();
+  rows.forEach((tr,i)=>{
+    const name=tr.dataset.row, prev=lastRank[name];
+    if(!reduce&&prev!==undefined&&prev!==i){
+      const dy=(prev-i)*(tr.offsetHeight||44);
+      tr.style.transition="none";
+      tr.style.transform=`translateY(${dy}px)`;
+      requestAnimationFrame(()=>{ tr.style.transition=""; tr.style.transform=""; });
+    }
+    lastRank[name]=i;
+  });
+}
 function rankingHTML(players){
   return `<div class="card" style="margin-top:20px"><table>${players.map((p,i)=>`
-    <tr><td class="rank">${i+1}</td><td>${avatar(p.c,p.g,30)}${esc(p.name)}</td>
+    <tr data-row="${esc(p.name)}"><td class="rank">${i+1}</td>
+    <td style="display:flex;align-items:center;gap:12px">${avatar(p.c,p.g,44)}${esc(p.name)}</td>
     <td data-score="${p.score}" data-who="${esc(p.name)}">0</td></tr>`).join("")}</table></div>`;
 }
 
@@ -292,10 +354,14 @@ function hostLobby(){
     <p class="meta" style="margin:0">Código de la sala</p><div class="code">${myCode}</div>
     <p class="sub" style="margin:12px auto 24px">Los alumnos abren esta misma dirección, eligen “Entrar como alumno” y escriben el código.</p>
     <div class="card"><div class="meta">${hostPlayers.length} ${hostPlayers.length===1?"persona conectada":"personas conectadas"}</div>
-      <div class="players">${hostPlayers.map(p=>`<span class="tag" style="display:inline-flex;align-items:center;gap:8px">${avatar(p.c,p.g,24)}${esc(p.name)}</span>`).join("")||`<span class="meta">Esperando…</span>`}</div></div>
+      <div class="players">${hostPlayers.map(p=>`<span class="tag" style="display:inline-flex;align-items:center;gap:8px">${avatar(p.c,p.g,34)}${esc(p.name)}</span>`).join("")||`<span class="meta">Esperando…</span>`}</div></div>
     <div class="row" style="justify-content:center;margin-top:22px">
-      <button class="primary" id="go" ${hostPlayers.length?"":"disabled"}>Comenzar</button></div></div>`;
-  document.getElementById("go").onclick=()=>socket.emit("host:start");
+      <button class="primary" id="go" ${hostPlayers.length?"":"disabled"}>Comenzar</button>
+      <button id="snd" title="Sonido">${soundOn?"&#128266;":"&#128263;"}</button></div></div>`;
+  document.getElementById("go").onclick=()=>{ audioReady(); socket.emit("host:start"); };
+  document.getElementById("snd").onclick=()=>{ soundOn=!soundOn; audioReady(); hostLobby(); };
+  if(hostPlayers.length>lastLobbyCount) S.join();
+  lastLobbyCount=hostPlayers.length;
 }
 
 function hostHeader(rightHTML){
@@ -305,13 +371,21 @@ function hostHeader(rightHTML){
 }
 // El contador se actualiza sin volver a dibujar la pantalla,
 // para que las animaciones no se reinicien cada segundo.
+let lastLobbyCount=0, lastAnswered=-1;
 function hostTick(){
   const s=document.getElementById("secs");
   if(s&&hostStarted) s.textContent=Math.floor((Date.now()-hostStarted)/1000)+"s";
   const c=document.getElementById("cnt");
-  if(c&&Q) c.textContent = Q.type==="cloud"
-    ? hostCloud.length
-    : hostPlayers.filter(p=>p.answered).length+"/"+hostPlayers.length;
+  if(!c||!Q) return;
+  const n = Q.type==="cloud" ? hostCloud.length : hostPlayers.filter(p=>p.answered).length;
+  c.textContent = Q.type==="cloud" ? n : n+"/"+hostPlayers.length;
+  if(n!==lastAnswered){
+    if(lastAnswered>=0&&n>lastAnswered){
+      S.answer();
+      c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump");
+    }
+    lastAnswered=n;
+  }
 }
 let cloudEls={};
 function updateCloud(words){
@@ -337,7 +411,7 @@ function hostQuestion(){
   if(!Q) return;
   const key="q"+Q.index;
   if(key===hostKey){ hostTick(); if(Q.type==="cloud") updateCloud(hostCloud); return; }
-  hostKey=key; cloudEls={};
+  hostKey=key; cloudEls={}; lastAnswered=-1; if(role==="host") S.start();
 
   if(Q.type==="cloud"){
     app.innerHTML=`<div class="wide proj">${hostHeader(`<div class="count" id="cnt">0</div>`)}
@@ -355,11 +429,14 @@ function hostQuestion(){
     else if(Q.type==="blank") body=`<div class="blank">${esc(Q.text).replace("___","<u>&nbsp;</u>")}</div>`;
     else if(Q.type==="order") body=`<div class="stack">${Q.items.map(i=>`<div class="pair"><div class="seq">·</div><div class="body"><span class="origin">${esc(i.text)}</span></div></div>`).join("")}</div>`;
     app.innerHTML=`<div class="wide proj">${hostHeader(`<div class="count" id="cnt">0/0</div>`)}
-      <p class="q">${esc(Q.prompt)}</p>${body}
-      <div class="row" style="margin-top:22px"><button class="primary" id="rev">Revelar la respuesta</button></div></div>`;
+      <p class="q">${esc(Q.prompt)}</p><div class="q-in">${body}</div>
+      <div class="row" style="margin-top:22px"><button class="primary" id="rev">Revelar la respuesta</button>
+      <button id="snd" title="Sonido">${soundOn?"&#128266;":"&#128263;"}</button></div></div>`;
   }
   hostTick();
   document.getElementById("rev").onclick=()=>socket.emit("host:reveal");
+  const sb=document.getElementById("snd");
+  if(sb) sb.onclick=()=>{ soundOn=!soundOn; sb.innerHTML=soundOn?"&#128266;":"&#128263;"; audioReady(); };
   if(Q.type==="match") requestAnimationFrame(drawWires);
 }
 setInterval(()=>{ if(role==="host"&&hostPhase==="question") hostTick(); },1000);
@@ -540,7 +617,7 @@ socket.on("host:reveal",d=>{
     <div class="row" style="margin-top:22px"><button class="primary" id="n">Continuar</button></div></div>`;
   document.getElementById("n").onclick=()=>socket.emit("host:next");
   if(d.type==="match") requestAnimationFrame(drawWires);
-  animateScores();
+  animateScores(); animateRanking(); S.reveal();
 });
 
 socket.on("reveal",d=>{
@@ -580,7 +657,7 @@ socket.on("reveal",d=>{
 
   app.innerHTML=`<div class="narrow">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
-      ${avatar(myColor,myGlyph,38)}
+      ${avatar(myColor,myGlyph,54)}
       <span class="meta">${d.ok} de ${d.total} · <span data-score="${d.score}" data-who="yo" style="font-family:var(--serif);font-size:1.3rem;color:var(--bone)">0</span> puntos</span></div>
     <h2 style="margin-top:4px">${esc(Q.title)}</h2>
     ${["single","tf","multi"].includes(d.type)?`<p class="q">${esc(Q.prompt)}</p>`:""}${body}
@@ -593,7 +670,7 @@ socket.on("end",d=>{
     ${role==="host"?`<div class="row" style="margin-top:22px"><button class="primary" id="r">Jugar de nuevo</button></div>`:``}</div>`;
   const r=document.getElementById("r");
   if(r) r.onclick=()=>socket.emit("host:restart");
-  animateScores();
+  animateScores(); animateRanking(); if(role==="host") S.end();
 });
 socket.on("lobby",()=>{ if(role==="host") hostLobby(); else waiting("Nueva ronda","Espera a que empiece."); });
 socket.on("closed",()=>{ if(role==="player") waiting("La sala se cerró","El proyector se desconectó."); });

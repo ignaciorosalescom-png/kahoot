@@ -233,6 +233,43 @@ function startQuestion(code, room) {
   pushHost(code);
 }
 
+// Segundos de espera antes de revelar sola la respuesta cuando ya
+// contestaron todos. Pon null si prefieres revelar siempre a mano.
+const AUTO_REVEAL_MS = 1500;
+
+function doReveal(code, room) {
+  if (!room || room.phase !== "question") return;
+  room.phase = "reveal";
+  const q = QUESTIONS[room.q];
+  const solution = solutionFor(q);
+  if (q.type !== "cloud") {
+    for (const [id, p] of room.players) {
+      const given = p.answers[room.q];
+      const { ok, total } = grade(q, given);
+      io.to(id).emit("reveal", { type: q.type, solution, note: q.note, given, ok, total, score: p.score });
+    }
+  } else {
+    io.to(code).emit("reveal", { type: "cloud", note: q.note, cloud: cloudList(room) });
+  }
+  io.to(room.hostId).emit("host:reveal", { type: q.type, solution, note: q.note,
+    players: playerList(room), cloud: cloudList(room) });
+  pushHost(code);
+}
+
+// Cuando ya respondieron todos, revela sola tras una pausa corta,
+// para que el último alcance a ver que su respuesta se registró.
+function maybeAutoReveal(code, room) {
+  if (AUTO_REVEAL_MS === null) return;
+  if (room.phase !== "question" || QUESTIONS[room.q].type === "cloud") return;
+  if (room.players.size === 0) return;
+  for (const p of room.players.values()) if (p.answers[room.q] === undefined) return;
+  const q = room.q;
+  setTimeout(() => {
+    const r = rooms.get(code);
+    if (r && r.phase === "question" && r.q === q) doReveal(code, r);
+  }, AUTO_REVEAL_MS);
+}
+
 io.on("connection", socket => {
 
   socket.on("host:create", cb => {
@@ -280,6 +317,7 @@ io.on("connection", socket => {
     player.score += base + bonus;
     socket.emit("answer:received");
     pushHost(code);
+    maybeAutoReveal(code, room);
   });
 
   // Nube de palabras: varias entradas por alumno, sin puntaje.
@@ -300,22 +338,7 @@ io.on("connection", socket => {
 
   socket.on("host:reveal", () => {
     const code = socket.data && socket.data.room, room = rooms.get(code);
-    if (!room || room.hostId !== socket.id) return;
-    room.phase = "reveal";
-    const q = QUESTIONS[room.q];
-    const solution = solutionFor(q);
-    if (q.type !== "cloud") {
-      for (const [id, p] of room.players) {
-        const given = p.answers[room.q];
-        const { ok, total } = grade(q, given);
-        io.to(id).emit("reveal", { type: q.type, solution, note: q.note, given, ok, total, score: p.score });
-      }
-    } else {
-      io.to(code).emit("reveal", { type: "cloud", note: q.note, cloud: cloudList(room) });
-    }
-    io.to(room.hostId).emit("host:reveal", { type: q.type, solution, note: q.note,
-      players: playerList(room), cloud: cloudList(room) });
-    pushHost(code);
+    if (room && room.hostId === socket.id) doReveal(code, room);
   });
 
   socket.on("host:next", () => {
