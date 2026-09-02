@@ -191,9 +191,11 @@ function newCode() {
   while (rooms.has(c));
   return c;
 }
+const AVATAR_COLORS = ["#E2604A","#E0A93C","#43A69C","#8E7CC8","#5B8DD9","#D97DA6","#7FB069","#C9B08A"];
+
 function playerList(room) {
   return [...room.players.values()]
-    .map(p => ({ name: p.name, score: p.score, answered: p.answers[room.q] !== undefined }))
+    .map(p => ({ name: p.name, score: p.score, c: p.c, g: p.g, answered: p.answers[room.q] !== undefined }))
     .sort((a, b) => b.score - a.score);
 }
 function cloudList(room) {
@@ -226,13 +228,15 @@ io.on("connection", socket => {
     pushHost(code);
   });
 
-  socket.on("player:join", ({ code, name }, cb) => {
+  socket.on("player:join", ({ code, name, color, glyph }, cb) => {
     const c = String(code || "").trim().toUpperCase();
     const room = rooms.get(c);
     if (!room) return cb({ error: "Esa sala no existe. Revisa las letras en la pantalla." });
     const clean = String(name || "").trim().slice(0, 22);
     if (!clean) return cb({ error: "Escribe tu nombre." });
-    room.players.set(socket.id, { name: clean, score: 0, answers: {} });
+    const col = AVATAR_COLORS.includes(color) ? color : AVATAR_COLORS[Math.floor(Math.random() * 8)];
+    const gl = Number.isInteger(glyph) && glyph >= 0 && glyph < 8 ? glyph : Math.floor(Math.random() * 8);
+    room.players.set(socket.id, { name: clean, score: 0, answers: {}, c: col, g: gl });
     socket.join(c);
     socket.data = { role: "player", room: c };
     cb({ ok: true });
