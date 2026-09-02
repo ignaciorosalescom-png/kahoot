@@ -211,9 +211,11 @@ function firstEmoji(s) {
 
 function playerList(room) {
   return [...room.players.values()]
-    .map(p => ({ name: p.name, score: p.score, c: p.c, g: p.g, answered: p.answers[room.q] !== undefined }))
+    .map(p => ({ name: p.name, score: p.score, c: p.c, g: p.g,
+                 online: p.online, answered: p.answers[room.q] !== undefined }))
     .sort((a, b) => b.score - a.score);
 }
+function newUid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
 function cloudList(room) {
   return (room.cloud || []).slice().sort((a, b) => b.count - a.count).slice(0, 40);
 }
@@ -243,10 +245,11 @@ function doReveal(code, room) {
   const q = QUESTIONS[room.q];
   const solution = solutionFor(q);
   if (q.type !== "cloud") {
-    for (const [id, p] of room.players) {
+    for (const p of room.players.values()) {
+      if (!p.online) continue;
       const given = p.answers[room.q];
       const { ok, total } = grade(q, given);
-      io.to(id).emit("reveal", { type: q.type, solution, note: q.note, given, ok, total, score: p.score });
+      io.to(p.sid).emit("reveal", { type: q.type, solution, note: q.note, given, ok, total, score: p.score });
     }
   } else {
     io.to(code).emit("reveal", { type: "cloud", note: q.note, cloud: cloudList(room) });
@@ -258,11 +261,31 @@ function doReveal(code, room) {
 
 // Cuando ya respondieron todos, revela sola tras una pausa corta,
 // para que el último alcance a ver que su respuesta se registró.
+// Pone al día a un alumno que acaba de (re)entrar: le manda la
+// pantalla que corresponde al momento en que va la sala.
+function resync(socket, room, player) {
+  const q = QUESTIONS[room.q];
+  if (room.phase === "lobby") return socket.emit("lobby");
+  if (room.phase === "end") return socket.emit("end", { players: playerList(room) });
+  socket.emit("question", { ...questionForClient(room.q), startedAt: room.startedAt,
+    alreadyAnswered: player.answers[room.q] !== undefined });
+  if (room.phase === "reveal") {
+    if (q.type === "cloud") socket.emit("reveal", { type: "cloud", note: q.note, cloud: cloudList(room) });
+    else {
+      const given = player.answers[room.q];
+      const { ok, total } = grade(q, given);
+      socket.emit("reveal", { type: q.type, solution: solutionFor(q), note: q.note,
+        given, ok, total, score: player.score });
+    }
+  }
+}
+
 function maybeAutoReveal(code, room) {
   if (AUTO_REVEAL_MS === null) return;
   if (room.phase !== "question" || QUESTIONS[room.q].type === "cloud") return;
-  if (room.players.size === 0) return;
-  for (const p of room.players.values()) if (p.answers[room.q] === undefined) return;
+  const online = [...room.players.values()].filter(p => p.online);
+  if (online.length === 0) return;
+  for (const p of online) if (p.answers[room.q] === undefined) return;
   const q = room.q;
   setTimeout(() => {
     const r = rooms.get(code);
@@ -281,7 +304,7 @@ io.on("connection", socket => {
     pushHost(code);
   });
 
-  socket.on("player:join", ({ code, name, color, glyph }, cb) => {
+  socket.on("player:join", ({ code, name, color, glyph, uid }, cb) => {
     const c = String(code || "").trim().toUpperCase();
     const room = rooms.get(c);
     if (!room) return cb({ error: "Esa sala no existe. Revisa las letras en la pantalla." });
@@ -289,12 +312,20 @@ io.on("connection", socket => {
     if (!clean) return cb({ error: "Escribe tu nombre." });
     const col = AVATAR_COLORS.includes(color) ? color : AVATAR_COLORS[Math.floor(Math.random() * 8)];
     const gl = firstEmoji(glyph) || EMOJI_POOL[Math.floor(Math.random() * EMOJI_POOL.length)];
-    room.players.set(socket.id, { name: clean, score: 0, answers: {}, c: col, g: gl });
+
+    // Si vuelve alguien que ya estaba, recupera su puntaje y sus
+    // respuestas en vez de entrar como persona nueva.
+    const id = (typeof uid === "string" && uid.length >= 6 && uid.length <= 40) ? uid : newUid();
+    const prev = room.players.get(id);
+    const player = prev
+      ? Object.assign(prev, { name: clean, c: col, g: gl, sid: socket.id, online: true })
+      : { name: clean, score: 0, answers: {}, c: col, g: gl, sid: socket.id, online: true };
+    room.players.set(id, player);
+
     socket.join(c);
-    socket.data = { role: "player", room: c };
-    cb({ ok: true });
-    if (room.phase === "question")
-      socket.emit("question", { ...questionForClient(room.q), startedAt: room.startedAt });
+    socket.data = { role: "player", room: c, uid: id };
+    cb({ ok: true, uid: id, rejoined: !!prev });
+    resync(socket, room, player);
     pushHost(c);
   });
 
@@ -306,7 +337,7 @@ io.on("connection", socket => {
   socket.on("player:answer", given => {
     const code = socket.data && socket.data.room, room = rooms.get(code);
     if (!room || room.phase !== "question") return;
-    const player = room.players.get(socket.id);
+    const player = room.players.get(socket.data.uid);
     const q = QUESTIONS[room.q];
     if (!player || q.type === "cloud" || player.answers[room.q] !== undefined) return;
     const ms = Date.now() - room.startedAt;
@@ -361,7 +392,10 @@ io.on("connection", socket => {
     const d = socket.data || {}, room = rooms.get(d.room);
     if (!room) return;
     if (d.role === "host") { io.to(d.room).emit("closed"); rooms.delete(d.room); }
-    else { room.players.delete(socket.id); pushHost(d.room); }
+    else {
+      const p = room.players.get(d.uid);
+      if (p && p.sid === socket.id) { p.online = false; pushHost(d.room); }
+    }
   });
 });
 

@@ -34,6 +34,10 @@
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
   .stack{display:flex;flex-direction:column;gap:12px}
   .card{background:var(--ink-2);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .card.tight{padding:12px 16px}
+  .tight td{padding:5px 6px}
+  .proj .tight td{padding:7px 8px;font-size:clamp(1rem,1.6vw,1.35rem)}
+  .proj .tight td:last-child{font-size:clamp(1.3rem,2.3vw,1.9rem)}
   .code{font-family:var(--serif);font-size:clamp(2.8rem,10vw,5rem);letter-spacing:.12em;line-height:1;margin:6px 0}
   .meta{color:var(--muted);font-size:.9rem}
   .bar{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:18px;flex-wrap:wrap}
@@ -173,10 +177,24 @@ const socket = io();
 const app = document.getElementById("app");
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function diag(st,t){ document.getElementById("dot").className="dot "+(st||""); document.getElementById("diagText").textContent=t; }
-socket.on("connect",()=>diag("ok","Conectado al servidor"));
+socket.on("connect",()=>{
+  diag("ok","Conectado al servidor");
+  // Si el teléfono se durmió y volvió, reentra solo a la misma sala
+  // conservando puntaje y respuestas.
+  if(hasJoined&&joinData){
+    socket.emit("player:join",joinData,r=>{
+      if(r&&r.error){ diag("bad","La sala ya no existe."); hasJoined=false; }
+      else diag("ok","Reconectado");
+    });
+  }
+});
 socket.on("disconnect",()=>diag("bad","Se perdió la conexión. Reintentando…"));
 
 let role=null, myCode=null, myName="";
+let myUid=null, joinData=null, hasJoined=false;
+try{ myUid=localStorage.getItem("ayu_uid"); }catch(e){}
+if(!myUid){ myUid=Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+  try{ localStorage.setItem("ayu_uid",myUid); }catch(e){} }
 let Q=null, ans=null, sent=false, activeOrigin=null, myWords=[];
 let hostPlayers=[], hostPhase="lobby", hostStarted=0, hostCloud=[];
 
@@ -280,11 +298,14 @@ function animateRanking(){
     lastRank[name]=i;
   });
 }
-function rankingHTML(players){
-  return `<div class="card" style="margin-top:20px"><table>${players.map((p,i)=>`
+function rankingHTML(players,max){
+  const shown=max?players.slice(0,max):players;
+  const rest=players.length-shown.length;
+  return `<div class="card tight" style="margin-top:16px"><table>${shown.map((p,i)=>`
     <tr data-row="${esc(p.name)}"><td class="rank">${i+1}</td>
-    <td style="display:flex;align-items:center;gap:12px">${avatar(p.c,p.g,44)}${esc(p.name)}</td>
-    <td data-score="${p.score}" data-who="${esc(p.name)}">0</td></tr>`).join("")}</table></div>`;
+    <td><span style="display:inline-flex;align-items:center;gap:10px">${avatar(p.c,p.g,32)}${esc(p.name)}${p.online===false?`<span class="meta" style="font-size:.8rem">desconectado</span>`:""}</span></td>
+    <td data-score="${p.score}" data-who="${esc(p.name)}">0</td></tr>`).join("")}</table>
+    ${rest>0?`<p class="meta" style="margin:10px 0 0;text-align:center">y ${rest} más</p>`:""}</div>`;
 }
 
 function joinScreen(){
@@ -327,9 +348,11 @@ function joinScreen(){
 
   const go=()=>{
     const code=document.getElementById("c").value, name=document.getElementById("n").value;
-    socket.emit("player:join",{code,name,color:myColor,glyph:myGlyph},r=>{
+    const payload={code:String(code||"").trim().toUpperCase(),name,color:myColor,glyph:myGlyph,uid:myUid};
+    socket.emit("player:join",payload,r=>{
       if(r.error){document.getElementById("err").textContent=r.error;return;}
-      role="player"; myName=name.trim();
+      role="player"; myName=name.trim(); joinData=payload; hasJoined=true;
+      if(r.uid){ myUid=r.uid; try{ localStorage.setItem("ayu_uid",myUid); }catch(e){} }
       waiting("Listo, "+myName,"Tu nombre ya aparece en la pantalla. Espera a que empiece.");
     });
   };
@@ -491,7 +514,7 @@ window.addEventListener("resize",()=>{ if(role==="host") requestAnimationFrame(d
 
 /* ─────────── Reparto de preguntas ─────────── */
 socket.on("question",q=>{
-  Q=q; sent=false; activeOrigin=null; myWords=[];
+  Q=q; sent=!!q.alreadyAnswered; activeOrigin=null; myWords=[];
   ans = q.type==="match"?{}: q.type==="multi"?[]: q.type==="order"?[]: null;
   if(role==="host"){ hostPhase="question"; hostStarted=q.startedAt; hostQuestion(); }
   else playerQuestion();
@@ -613,7 +636,7 @@ socket.on("host:reveal",d=>{
     <div class="bar"><div><span class="meta">${d.type==="cloud"?"Respuestas del curso":"Respuesta"}</span>
       <h2 style="margin-top:4px">${esc(Q.title)}</h2></div></div>${ask}${body}
     <div class="note">${esc(d.note)}</div>
-    ${d.type!=="cloud"?rankingHTML(d.players):``}
+    ${d.type!=="cloud"?rankingHTML(d.players,6):``}
     <div class="row" style="margin-top:22px"><button class="primary" id="n">Continuar</button></div></div>`;
   document.getElementById("n").onclick=()=>socket.emit("host:next");
   if(d.type==="match") requestAnimationFrame(drawWires);
