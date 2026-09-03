@@ -127,7 +127,7 @@ const QUESTIONS = [
   { type:"blank", title:"Ora serrata",
     prompt:"Completa las dos casillas.",
     text:"La ___ es la zona límite entre la retina y la coroides. Delimita la parte visual y no visual, y marca el inicio del ___.",
-    accept:[["ora serrata","oroserrata"],["cuerpo ciliar"]],
+    accept:[["oroserrata","ora serrata"],["cuerpo ciliar"]],
     note:"La ora serrata marca dónde termina la retina visual y comienza la porción ciega, justo donde empieza el cuerpo ciliar." },
 
   { type:"multi", title:"Anillo tendinoso",

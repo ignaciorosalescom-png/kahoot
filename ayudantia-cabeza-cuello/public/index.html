@@ -141,13 +141,44 @@
   .opt{display:flex;align-items:center;gap:14px}
   .shape{flex:none;width:38px;height:38px;border-radius:9px;display:flex;align-items:center;
     justify-content:center;color:rgba(14,26,33,.9);font-size:19px;line-height:1}
-  .proj .shape{width:46px;height:46px;font-size:23px}
   .opt.dim{opacity:.42}
   .qr{background:var(--bone);padding:10px;border-radius:14px;display:inline-block;line-height:0}
   .qr svg{width:min(46vw,230px);height:auto;display:block}
   .lobbygrid{display:flex;gap:26px;align-items:center;justify-content:center;flex-wrap:wrap;margin:10px 0 20px}
   .url{font-size:.85rem;color:var(--muted);word-break:break-all;max-width:260px}
 
+  /* La revelación va en dos columnas: respuesta a la izquierda,
+     ranking siempre visible a la derecha. */
+  .revealwrap{display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start}
+  .revhead{grid-column:1/-1;margin-bottom:2px}
+  .revealwrap.solo{grid-template-columns:1fr}
+  .revealwrap.solo .revright{max-width:280px}
+  .revealwrap .q{font-size:clamp(1.1rem,1.9vw,1.55rem);margin-bottom:14px}
+  .revealwrap .opt{padding:10px 14px;font-size:clamp(.95rem,1.35vw,1.15rem)}
+  .revealwrap .shape{width:32px;height:32px;font-size:16px;border-radius:8px}
+  .revealwrap .blank{font-size:clamp(1.1rem,1.9vw,1.5rem);line-height:1.8}
+  .revealwrap .note{font-size:.95rem;margin-top:14px}
+  .revealwrap .pair .body{min-height:48px;padding:8px 12px}
+  .revealwrap .pair .num,.revealwrap .seq{min-width:52px;font-size:1rem}
+  .revealwrap .colcard{padding:10px 14px;min-height:54px;font-size:1rem}
+  .revealwrap .card{margin-top:0}
+  .revealwrap td{font-size:.95rem;padding:5px 6px}
+  .revealwrap td:last-child{font-size:1.1rem}
+  @media (max-width:900px){ .revealwrap{grid-template-columns:1fr} }
+  /* El proyector se compacta solo: --k lo ajusta el JS hasta que
+     todo entra en pantalla sin scroll. */
+  .proj{--k:1}
+  .proj .stack{gap:calc(10px*var(--k))}
+  .proj .opt{padding:calc(11px*var(--k)) calc(15px*var(--k));font-size:calc(1.3rem*var(--k))}
+  .proj .shape{width:calc(38px*var(--k));height:calc(38px*var(--k));font-size:calc(19px*var(--k));border-radius:calc(9px*var(--k))}
+  .proj .pair .body{min-height:calc(54px*var(--k));padding:calc(9px*var(--k)) calc(14px*var(--k))}
+  .proj .pair .num,.proj .seq{min-width:calc(58px*var(--k));font-size:calc(1.1rem*var(--k))}
+  .proj .colcard{padding:calc(11px*var(--k)) calc(15px*var(--k));min-height:calc(54px*var(--k));font-size:calc(1.1rem*var(--k))}
+  .proj .col{gap:calc(11px*var(--k))}
+  .proj .q{margin-bottom:calc(16px*var(--k))}
+  .proj .bar{margin-bottom:calc(12px*var(--k))}
+  .proj .blank{line-height:1.75}
+  .proj .row{margin-top:calc(16px*var(--k)) !important}
   .diag{position:fixed;left:0;right:0;bottom:0;background:var(--ink-3);border-top:1px solid var(--line);
     padding:8px 16px;font-size:.8rem;color:var(--muted);display:flex;gap:8px;align-items:center}
   .dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}
@@ -174,10 +205,8 @@
   .q-in>*:nth-child(5){animation-delay:.2s}
   .q-in>*:nth-child(6){animation-delay:.25s}
   #snd{padding:8px 12px;font-size:1.1rem;line-height:1}
-  .proj .opt{font-size:clamp(1.05rem,1.7vw,1.45rem);padding:16px 18px}
-  .proj .colcard{font-size:clamp(1rem,1.5vw,1.35rem);padding:16px 18px}
-  .proj .colcard .badge{min-width:60px;height:44px;font-size:1.25rem}
-  .proj .pair .origin{font-size:clamp(1rem,1.6vw,1.4rem)}
+  .proj .colcard .badge{min-width:calc(52px*var(--k));height:calc(38px*var(--k));font-size:calc(1.1rem*var(--k))}
+  .proj .pair .origin{font-size:calc(1.15rem*var(--k))}
   .proj .note{font-size:1.05rem}
 
   /* la respuesta correcta, en negrita */
@@ -336,6 +365,45 @@ function acceptedHTML(sol){
   return `<p class="meta" style="margin-top:12px">También se aceptó: ${
     extra.map(a=>a.map(esc).join(", ")).join(" · ")}</p>`;
 }
+// Reduce el enunciado hasta que entre en una sola línea. Si aun en el
+// tamaño mínimo no cabe, lo deja envolver: más chico sería ilegible.
+function fitOneLine(sel,maxRem,minRem){
+  const el=document.querySelector(sel);
+  if(!el) return;
+  let size=maxRem;
+  el.style.fontSize=size+"rem";
+  const lh=()=>parseFloat(getComputedStyle(el).lineHeight)||size*16*1.3;
+  let guard=0;
+  while(el.scrollHeight>lh()*1.35&&size>minRem&&guard++<60){
+    size=Math.round((size-0.06)*100)/100;
+    el.style.fontSize=size+"rem";
+  }
+}
+
+// Compacta la pantalla del proyector hasta que quepa sin scroll.
+function fitToScreen(){
+  const box=document.querySelector(".proj");
+  if(!box) return;
+  let k=1;
+  box.style.setProperty("--k",k);
+  const cabe=()=>document.documentElement.scrollHeight<=window.innerHeight-6;
+  let guard=0;
+  while(!cabe()&&k>0.5&&guard++<40){
+    k=Math.round((k-0.04)*100)/100;
+    box.style.setProperty("--k",k);
+  }
+  // Si aun compactado no cabe, se reduce el enunciado un poco más.
+  const q=box.querySelector(".q");
+  if(q&&!cabe()){
+    let size=parseFloat(getComputedStyle(q).fontSize)/16;
+    let g2=0;
+    while(!cabe()&&size>0.95&&g2++<30){
+      size=Math.round((size-0.06)*100)/100;
+      q.style.fontSize=size+"rem";
+    }
+  }
+}
+
 function blankHTML(text,sols){
   if(!sols) sols=null;
   const parts=String(text).split("___");
@@ -426,7 +494,7 @@ function rankingHTML(players,max){
   const rest=players.length-shown.length;
   return `<div class="card tight" style="margin-top:16px"><table>${shown.map((p,i)=>`
     <tr data-row="${esc(p.name)}"><td class="rank">${i+1}</td>
-    <td><span style="display:inline-flex;align-items:center;gap:10px">${avatar(p.c,p.g,32)}${esc(p.name)}${p.online===false?`<span class="meta" style="font-size:.8rem">desconectado</span>`:""}</span></td>
+    <td><span style="display:inline-flex;align-items:center;gap:10px">${avatar(p.c,p.g,26)}${esc(p.name)}${p.online===false?`<span class="meta" style="font-size:.8rem">desconectado</span>`:""}</span></td>
     <td data-score="${p.score}" data-who="${esc(p.name)}">0</td></tr>`).join("")}</table>
     ${rest>0?`<p class="meta" style="margin:10px 0 0;text-align:center">y ${rest} más</p>`:""}</div>`;
 }
@@ -590,6 +658,7 @@ function hostQuestion(){
       <button id="snd" title="Sonido">${soundOn?"&#128266;":"&#128263;"}</button></div></div>`;
   }
   hostTick();
+  fitOneLine(".proj .q",2.5,1.2); fitToScreen();
   document.getElementById("rev").onclick=()=>socket.emit("host:reveal");
   const sb=document.getElementById("snd");
   if(sb) sb.onclick=()=>{ soundOn=!soundOn; sb.innerHTML=soundOn?"&#128266;":"&#128263;"; audioReady(); };
@@ -643,7 +712,13 @@ function drawWires(){
     a.classList.add("right"); b.classList.add("right");
   });
 }
-window.addEventListener("resize",()=>{ if(role==="host") requestAnimationFrame(drawWires); });
+window.addEventListener("resize",()=>{
+  if(role!=="host") return;
+  requestAnimationFrame(drawWires);
+  if(hostPhase==="question") fitOneLine(".proj .q",2.5,1.2);
+  else if(hostPhase==="reveal") fitOneLine(".revealwrap .q",1.55,1);
+  fitToScreen();
+});
 
 /* ─────────── Reparto de preguntas ─────────── */
 socket.on("question",q=>{
@@ -783,14 +858,17 @@ socket.on("host:reveal",d=>{
 
   hostKey="";
   const ask=["single","tf","multi"].includes(d.type)?`<p class="q">${esc(Q.prompt)}</p>`:"";
-  app.innerHTML=`<div class="wide proj reveal-in">
-    <div class="bar"><div><span class="meta">${d.type==="cloud"?"Respuestas del curso":"Respuesta"}</span>
-      <h2 style="margin-top:4px">${esc(Q.title)}</h2></div></div>${ask}${body}
-    ${d.note?`<div class="note">${esc(d.note)}</div>`:""}
-    ${d.type!=="cloud"?rankingHTML(d.players,6):``}
-    <div class="row" style="margin-top:22px"><button class="primary" id="n">Continuar</button></div></div>`;
+  const solo=(d.type==="cloud");
+  app.innerHTML=`<div class="wide proj revealwrap reveal-in ${solo?"solo":""}">
+    <div class="revhead"><h2 style="margin:0">Pregunta ${Q.index+1} de ${Q.total} · ${esc(Q.title)}</h2></div>
+    <div class="revleft">${ask}${body}
+      ${d.note?`<div class="note">${esc(d.note)}</div>`:""}</div>
+    <div class="revright">
+      ${solo?``:`<p class="meta" style="margin:0 0 6px">Ranking</p>${rankingHTML(d.players,6)}`}
+      <button class="primary" id="n" style="width:100%;margin-top:14px">Continuar</button></div></div>`;
   document.getElementById("n").onclick=()=>socket.emit("host:next");
-  if(d.type==="match") requestAnimationFrame(drawWires);
+  fitOneLine(".revealwrap .q",1.55,1); fitToScreen();
+  if(d.type==="match") setTimeout(()=>requestAnimationFrame(drawWires),460);
   animateScores(); animateRanking(); S.reveal();
 });
 
