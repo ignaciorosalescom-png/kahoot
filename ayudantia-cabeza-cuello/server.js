@@ -8,7 +8,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 app.use(express.static(path.join(__dirname, "public")));
 
-const COLORS = ["#E2604A", "#E0A93C", "#43A69C", "#8E7CC8"];
+const COLORS = ["#E2604A","#E0A93C","#43A69C","#8E7CC8","#5B8DD9","#7FB069"];
 
 /* ═══════════════════════════════════════════════════════════
    BANCO DE PREGUNTAS
@@ -17,76 +17,299 @@ const COLORS = ["#E2604A", "#E0A93C", "#43A69C", "#8E7CC8"];
    Las respuestas correctas nunca salen de este archivo.
    ═══════════════════════════════════════════════════════════ */
 const QUESTIONS = [
+  /* ── 1. Cráneo y huesos de la cabeza ── */
 
-  { type: "match",
-    title: "Arcos faríngeos",
-    prompt: "Une cada arco faríngeo con el derivado esquelético y el nervio que le corresponden.",
-    origins: [
-      { id: "a1", num: "I",     label: "Primer arco" },
-      { id: "a2", num: "II",    label: "Segundo arco" },
-      { id: "a3", num: "III",   label: "Tercer arco" },
-      { id: "a4", num: "IV–VI", label: "Cuarto a sexto arco" }
-    ],
-    options: [
-      { id: "d3", text: "Cuerno mayor del hioides · glosofaríngeo (IX)", match: "a3" },
-      { id: "d1", text: "Martillo y yunque · trigémino (V3)",            match: "a1" },
-      { id: "d4", text: "Cartílagos laríngeos · vago (X)",               match: "a4" },
-      { id: "d2", text: "Estribo y estiloides · facial (VII)",           match: "a2" }
-    ],
-    note: "El hioides queda repartido: cuerpo y cuerno menor del segundo arco, cuerno mayor del tercero." },
+  { type:"single", title:"Calota",
+    prompt:"Origen embriológico de la calota o calvaria.",
+    options:[
+      {id:"a",text:"Desmocráneo / neurocráneo membranoso",correct:true},
+      {id:"b",text:"Condrocráneo / neurocráneo cartilaginoso"},
+      {id:"c",text:"Viscerocráneo"},
+      {id:"d",text:"Prominencia frontonasal"}],
+    note:"" },
 
-  { type: "single",
-    title: "Estilofaríngeo",
-    prompt: "¿Qué nervio inerva el músculo estilofaríngeo?",
-    options: [
-      { id: "o1", text: "Nervio facial (VII)" },
-      { id: "o2", text: "Nervio glosofaríngeo (IX)", correct: true },
-      { id: "o3", text: "Nervio vago (X)" },
-      { id: "o4", text: "Nervio hipogloso (XII)" }
-    ],
-    note: "Es el único músculo inervado por el glosofaríngeo, y deriva del tercer arco. Los demás músculos faríngeos son del vago." },
+  { type:"match", title:"Huesos craneales",
+    prompt:"Empareja el hueso craneal con la estructura que se relaciona.",
+    origins:[
+      {id:"o1",num:"1",label:"Esfenoides"},
+      {id:"o2",num:"2",label:"Temporal"},
+      {id:"o3",num:"3",label:"Etmoides"},
+      {id:"o4",num:"4",label:"Frontal"}],
+    options:[
+      {id:"d3",text:"Cavidad nasal",match:"o3"},
+      {id:"d1",text:"Glándula hipófisis",match:"o1"},
+      {id:"d4",text:"Seno frontal",match:"o4"},
+      {id:"d2",text:"Oído interno",match:"o2"}],
+    note:"" },
 
-  { type: "tf",
-    title: "Velo del paladar",
-    prompt: "El músculo tensor del velo del paladar deriva del segundo arco faríngeo.",
-    answer: false,
-    note: "Deriva del primer arco y lo inerva el trigémino (V3). Es la excepción entre los músculos del velo, que en su mayoría dependen del vago." },
+  { type:"match", title:"Craneosinostosis",
+    prompt:"Empareja el tipo de craneosinostosis con la sutura que se fusiona prematuramente.",
+    origins:[
+      {id:"o1",num:"1",label:"Escafocefalia"},
+      {id:"o2",num:"2",label:"Trigonocefalia"},
+      {id:"o3",num:"3",label:"Plagiocefalia"},
+      {id:"o4",num:"4",label:"Oxicefalia"}],
+    options:[
+      {id:"d2",text:"Sutura frontal",match:"o2"},
+      {id:"d4",text:"Suturas coronales bilaterales",match:"o4"},
+      {id:"d1",text:"Sutura sagital",match:"o1"},
+      {id:"d3",text:"Sutura coronal unilateral",match:"o3"}],
+    note:"" },
 
-  { type: "multi",
-    title: "Agujero yugular",
-    prompt: "Marca todas las estructuras que atraviesan el agujero yugular.",
-    options: [
-      { id: "m1", text: "Nervio glosofaríngeo (IX)", correct: true },
-      { id: "m2", text: "Nervio vago (X)",           correct: true },
-      { id: "m3", text: "Nervio accesorio (XI)",     correct: true },
-      { id: "m4", text: "Nervio hipogloso (XII)" },
-      { id: "m5", text: "Nervio facial (VII)" }
-    ],
-    note: "Los pares IX, X y XI salen juntos por el agujero yugular. El hipogloso tiene su propio conducto y el facial sale por el estilomastoideo." },
+  { type:"match", title:"Base del cráneo",
+    prompt:"Empareja el foramen o conducto de la base del cráneo con el par craneal que pasa por él.",
+    origins:[
+      {id:"o1",num:"1",label:"Foramen yugular"},
+      {id:"o2",num:"2",label:"Conducto hipogloso"},
+      {id:"o3",num:"3",label:"Meato acústico interno"},
+      {id:"o4",num:"4",label:"Foramen redondo"},
+      {id:"o5",num:"5",label:"Foramen oval"}],
+    options:[
+      {id:"d4",text:"V2 (maxilar)",match:"o4"},
+      {id:"d1",text:"IX, X y XI",match:"o1"},
+      {id:"d5",text:"V3 (mandibular)",match:"o5"},
+      {id:"d3",text:"VII y VIII",match:"o3"},
+      {id:"d2",text:"XII",match:"o2"}],
+    note:"" },
 
-  { type: "blank",
-    title: "Conducto tirogloso",
-    prompt: "Completa la frase con una palabra o expresión.",
-    text: "El primordio tiroideo se origina en el ___ de la lengua.",
-    accept: ["foramen cecum", "agujero ciego", "foramen ciego", "agujero cecum"],
-    note: "El foramen cecum queda en el vértice de la V lingual y marca el punto de partida del descenso tiroideo." },
+  { type:"blank", title:"Venas emisarias",
+    prompt:"Completa la frase.",
+    text:"Las venas ___ son uniones venosas entre senos venosos, venas diploicas y venas craneales superficiales.",
+    accept:[["emisarias","emisaria"]],
+    note:"" },
 
-  { type: "order",
-    title: "Descenso tiroideo",
-    prompt: "Ordena las etapas del descenso de la glándula tiroides, de la primera a la última.",
-    items: [
-      { id: "s3", text: "Pasa por delante del hueso hioides" },
-      { id: "s1", text: "El primordio aparece en el foramen cecum" },
-      { id: "s4", text: "Alcanza su posición infrahioidea definitiva" },
-      { id: "s2", text: "Desciende siguiendo el conducto tirogloso" }
-    ],
-    correctOrder: ["s1", "s2", "s3", "s4"],
-    note: "El trayecto explica dónde aparecen los quistes del conducto tirogloso: en la línea media, y ascienden al tragar." },
+  /* ── 2. Embriología facial y arcos faríngeos ── */
 
-  { type: "cloud",
-    title: "Cresta neural",
-    prompt: "Escribe todos los derivados de las células de la cresta neural en cabeza y cuello que recuerdes.",
-    note: "Sin puntaje: la idea es ver qué recuerda el curso en conjunto." }
+  { type:"cloud", title:"Cresta neural",
+    prompt:"Indica un derivado de las células de la cresta neural en cabeza y cuello.",
+    note:"" },
+
+  { type:"cloud", title:"Primer arco",
+    prompt:"Indica un derivado del primer arco faríngeo.",
+    note:"" },
+
+  { type:"cloud", title:"Segundo arco",
+    prompt:"Indica un derivado del segundo arco faríngeo.",
+    note:"" },
+
+  { type:"single", title:"Fisura palatina",
+    prompt:"¿Qué procesos NO se fusionaron en un paciente con fisura palatina?",
+    options:[
+      {id:"a",text:"Proceso maxilar con nasal medial"},
+      {id:"b",text:"Crestas palatinas de los procesos maxilares",correct:true},
+      {id:"c",text:"Procesos nasales mediales"},
+      {id:"d",text:"Proceso maxilar con nasal lateral"}],
+    note:"" },
+
+  { type:"order", title:"Formación del paladar",
+    prompt:"Ordena la secuencia de fusión de los procesos faciales que forman el paladar.",
+    items:[
+      {id:"s3",text:"Fusión de las crestas palatinas"},
+      {id:"s1",text:"Fusión de los procesos nasales mediales entre sí"},
+      {id:"s4",text:"Fusión del paladar secundario con el tabique nasal"},
+      {id:"s2",text:"Fusión del paladar primario con los procesos maxilares"}],
+    correctOrder:["s1","s2","s3","s4"],
+    note:"" },
+
+  /* ── 3. Órbita y ojo ── */
+
+  { type:"blank", title:"Capas de la retina",
+    prompt:"Completa las cuatro casillas.",
+    text:"Fotorreceptoras: conos y ___\nNeuronas de conducción: bipolares y ___\nNeuronas de asociación: horizontales y ___\nDe sostén: Müller y ___",
+    accept:[
+      ["bastones","bastón"],
+      ["ganglionares","células ganglionares"],
+      ["amacrinas","centrífugas","interplexiformes"],
+      ["neuroglia","glía","células gliales"]],
+    note:"" },
+
+  { type:"blank", title:"Ora serrata",
+    prompt:"Completa las dos casillas.",
+    text:"La ___ es la zona límite entre la retina y la coroides. Delimita la parte visual y no visual, y marca el inicio del ___.",
+    accept:[["ora serrata","oroserrata"],["cuerpo ciliar"]],
+    note:"" },
+
+  { type:"multi", title:"Anillo tendinoso",
+    prompt:"¿Qué estructuras que salen de la fisura orbitaria superior pasan por el anillo tendinoso?",
+    options:[
+      {id:"a",text:"Nervio troclear"},
+      {id:"b",text:"Ramo lagrimal y frontal del trigémino"},
+      {id:"c",text:"Ramo superior del oculomotor",correct:true},
+      {id:"d",text:"Ramo nasociliar",correct:true},
+      {id:"e",text:"Nervio abducens",correct:true},
+      {id:"f",text:"Ramo inferior del oculomotor",correct:true}],
+    note:"" },
+
+  { type:"single", title:"Movimientos oculares",
+    prompt:"Al examinar los movimientos oculares, pides al paciente que dirija el ojo hacia medial (aducción) y luego hacia abajo. ¿Qué músculo estás evaluando principalmente?",
+    options:[
+      {id:"a",text:"Recto inferior"},
+      {id:"b",text:"Oblicuo inferior"},
+      {id:"c",text:"Recto medial"},
+      {id:"d",text:"Oblicuo superior",correct:true}],
+    note:"" },
+
+  { type:"match", title:"Humor acuoso",
+    prompt:"Empareja la estructura ocular con su función.",
+    origins:[
+      {id:"o1",num:"1",label:"Procesos ciliares"},
+      {id:"o2",num:"2",label:"Malla trabecular o de Fontana"},
+      {id:"o3",num:"3",label:"Iris"}],
+    options:[
+      {id:"d2",text:"Drena el humor acuoso",match:"o2"},
+      {id:"d3",text:"Regula la entrada de luz",match:"o3"},
+      {id:"d1",text:"Produce el humor acuoso",match:"o1"}],
+    note:"" },
+
+  { type:"single", title:"Conducto nasolagrimal",
+    prompt:"Las lágrimas producidas en la órbita drenan hacia la cavidad nasal a través del conducto nasolagrimal. ¿En qué estructura específica desemboca este conducto?",
+    options:[
+      {id:"a",text:"Meato nasal medio"},
+      {id:"b",text:"Receso esfenoetmoidal"},
+      {id:"c",text:"Meato nasal inferior",correct:true},
+      {id:"d",text:"Meato nasal superior"}],
+    note:"" },
+
+  /* ── 4. Oído ── */
+
+  { type:"blank", title:"Tuba faringotimpánica",
+    prompt:"Completa las dos casillas.",
+    text:"La tuba faringotimpánica se origina embriológicamente de la ___ y egresa por la cara ___ de la cavidad timpánica.",
+    accept:[
+      ["primera bolsa faríngea","1ra bolsa faríngea","bolsa faríngea","endodermo"],
+      ["anterior"]],
+    note:"" },
+
+  { type:"match", title:"Oído interno",
+    prompt:"Empareja la estructura del oído interno con su función.",
+    origins:[
+      {id:"o1",num:"1",label:"Estría vascular"},
+      {id:"o2",num:"2",label:"Mácula del utrículo"},
+      {id:"o3",num:"3",label:"Mácula del sáculo"},
+      {id:"o4",num:"4",label:"Cresta ampular"}],
+    options:[
+      {id:"d3",text:"Aceleración lineal vertical",match:"o3"},
+      {id:"d1",text:"Produce la endolinfa",match:"o1"},
+      {id:"d4",text:"Movimientos rotacionales",match:"o4"},
+      {id:"d2",text:"Aceleración lineal horizontal",match:"o2"}],
+    note:"" },
+
+  /* ── 5. Cavidad oral, lengua y glándulas salivales ── */
+
+  { type:"single", title:"Lengua: sensorial",
+    prompt:"¿Qué par craneal da la inervación SENSORIAL a los dos tercios anteriores de la lengua?",
+    options:[
+      {id:"a",text:"Trigémino (V)"},
+      {id:"b",text:"Facial (VII)",correct:true},
+      {id:"c",text:"Glosofaríngeo (IX)"},
+      {id:"d",text:"Hipogloso (XII)"}],
+    note:"" },
+
+  { type:"multi", title:"Glándulas salivales",
+    prompt:"¿Cuáles glándulas salivales tienen origen endodérmico?",
+    options:[
+      {id:"a",text:"Parótida"},
+      {id:"b",text:"Submandibular",correct:true},
+      {id:"c",text:"Sublingual",correct:true}],
+    note:"" },
+
+  { type:"blank", title:"Palatogloso",
+    prompt:"Completa las dos casillas.",
+    text:"El músculo ___ marca el límite entre la cavidad oral y la orofaringe, y es el único músculo extrínseco de la lengua inervado por el ___.",
+    accept:[["palatogloso"],["plexo faríngeo","plexo faringeo"]],
+    note:"" },
+
+  { type:"blank", title:"Conducto parotídeo",
+    prompt:"Completa las dos casillas.",
+    text:"El músculo ___ es atravesado por el conducto parotídeo y es inervado por el nervio ___.",
+    accept:[["buccinador"],["facial"]],
+    note:"" },
+
+  { type:"match", title:"Tipo de secreción",
+    prompt:"Empareja la glándula salival con su tipo de secreción.",
+    origins:[
+      {id:"o1",num:"1",label:"Parótida"},
+      {id:"o2",num:"2",label:"Submandibular"},
+      {id:"o3",num:"3",label:"Sublingual"}],
+    options:[
+      {id:"d3",text:"Mixta, con predominio mucoso",match:"o3"},
+      {id:"d1",text:"Serosa pura",match:"o1"},
+      {id:"d2",text:"Mixta, con predominio seroso",match:"o2"}],
+    note:"" },
+
+  { type:"single", title:"Parasimpático parotídeo",
+    prompt:"¿Qué nervio craneal aporta la inervación parasimpática para la secreción de la glándula parótida, a través del nervio petroso menor?",
+    options:[
+      {id:"a",text:"Nervio facial (VII)"},
+      {id:"b",text:"Nervio trigémino (V)"},
+      {id:"c",text:"Nervio vago (X)"},
+      {id:"d",text:"Nervio glosofaríngeo (IX)",correct:true}],
+    note:"" },
+
+  { type:"match", title:"Papilas linguales",
+    prompt:"Empareja la papila lingual con su característica.",
+    origins:[
+      {id:"o1",num:"1",label:"Filiformes"},
+      {id:"o2",num:"2",label:"Fungiformes"},
+      {id:"o3",num:"3",label:"Circunvaladas"},
+      {id:"o4",num:"4",label:"Foliadas"}],
+    options:[
+      {id:"d4",text:"Bordes laterales",match:"o4"},
+      {id:"d2",text:"Anteriores, con botones gustativos",match:"o2"},
+      {id:"d1",text:"Las más abundantes, sin botones gustativos",match:"o1"},
+      {id:"d3",text:"Forman la V lingual",match:"o3"}],
+    note:"" },
+
+  /* ── 6. Faringe y cuello ── */
+
+  { type:"single", title:"Danger space",
+    prompt:"En el cuello existe un espacio virtual por donde una infección profunda puede propagarse rápidamente hacia el mediastino. ¿Entre qué fascias se encuentra?",
+    options:[
+      {id:"a",text:"Entre la lámina de revestimiento y la pretraqueal"},
+      {id:"b",text:"En el interior de la vaina carotídea"},
+      {id:"c",text:"Entre la lámina prevertebral y la fascia bucofaríngea",correct:true},
+      {id:"d",text:"Superficial al músculo platisma"}],
+    note:"" },
+
+  { type:"tf", title:"Asa cervical",
+    prompt:"El asa cervical, formada por las raíces C1 a C3, tiene como función principal inervar los músculos infrahioideos, excepto el tirohioideo.",
+    answer:true,
+    note:"" },
+
+  /* ── 7. Laringe ── */
+
+  { type:"single", title:"Arteria subclavia",
+    prompt:"¿Qué estructura nerviosa da una vuelta a nivel de la arteria subclavia?",
+    options:[
+      {id:"a",text:"Nervio laríngeo superior derecho"},
+      {id:"b",text:"Nervio laríngeo superior izquierdo"},
+      {id:"c",text:"Nervio laríngeo recurrente derecho",correct:true},
+      {id:"d",text:"Nervio laríngeo recurrente izquierdo"}],
+    note:"" },
+
+  { type:"single", title:"Tensor de las cuerdas",
+    prompt:"¿Qué músculo laríngeo tensa las cuerdas vocales verdaderas?",
+    options:[
+      {id:"a",text:"Aritenoides"},
+      {id:"b",text:"Vocal"},
+      {id:"c",text:"Cricotiroideo",correct:true},
+      {id:"d",text:"Tiroaritenoideo"}],
+    note:"" },
+
+  { type:"match", title:"Músculos laríngeos",
+    prompt:"Empareja el músculo intrínseco de la laringe con su función.",
+    origins:[
+      {id:"o1",num:"1",label:"Cricotiroideo"},
+      {id:"o2",num:"2",label:"Cricoaritenoideo posterior"},
+      {id:"o3",num:"3",label:"Cricoaritenoideo lateral"},
+      {id:"o4",num:"4",label:"Tiroaritenoideo"}],
+    options:[
+      {id:"d3",text:"Aductor de la glotis",match:"o3"},
+      {id:"d1",text:"Tensor de las cuerdas vocales",match:"o1"},
+      {id:"d4",text:"Relaja y acorta las cuerdas vocales",match:"o4"},
+      {id:"d2",text:"Dilatador (abductor) de la glotis",match:"o2"}],
+    note:"" }
+
 ];
 
 /* ─────────── Normalización de texto ─────────── */
@@ -125,12 +348,12 @@ function questionForClient(i) {
   const base = { index: i, total: QUESTIONS.length, type: q.type, title: q.title, prompt: q.prompt };
   if (q.type === "match")
     return { ...base,
-      origins: q.origins.map((o, k) => ({ ...o, color: COLORS[k % 4] })),
+      origins: q.origins.map((o, k) => ({ ...o, color: COLORS[k % COLORS.length] })),
       options: q.options.map(o => ({ id: o.id, text: o.text })) };
   if (q.type === "single" || q.type === "multi")
     return { ...base, options: q.options.map(o => ({ id: o.id, text: o.text })) };
   if (q.type === "tf")    return base;
-  if (q.type === "blank") return { ...base, text: q.text };
+  if (q.type === "blank") return { ...base, text: q.text, blanks: q.accept.length };
   if (q.type === "order") return { ...base, items: q.items };
   return base;
 }
@@ -158,8 +381,13 @@ function grade(q, given) {
     return { ok: Math.max(0, hits - misses), total: rights.length };
   }
   if (q.type === "blank") {
-    const g = norm(given || "");
-    return { ok: q.accept.some(a => similar(norm(a), g)) ? 1 : 0, total: 1 };
+    const arr = Array.isArray(given) ? given : [given];
+    let ok = 0;
+    q.accept.forEach((alts, i) => {
+      const g = norm(arr[i] || "");
+      if (g && alts.some(a => similar(norm(a), g))) ok++;
+    });
+    return { ok, total: q.accept.length };
   }
   if (q.type === "order") {
     const seq = Array.isArray(given) ? given : [];
@@ -173,11 +401,11 @@ function grade(q, given) {
 function solutionFor(q) {
   if (q.type === "match")
     return q.origins.map((o, k) => ({ originId: o.id, num: o.num, label: o.label,
-      color: COLORS[k % 4], text: q.options.find(x => x.match === o.id).text }));
+      color: COLORS[k % COLORS.length], text: q.options.find(x => x.match === o.id).text }));
   if (q.type === "single") return { id: q.options.find(o => o.correct).id };
   if (q.type === "tf")     return { answer: q.answer };
   if (q.type === "multi")  return { ids: q.options.filter(o => o.correct).map(o => o.id) };
-  if (q.type === "blank")  return { text: q.accept[0], all: q.accept };
+  if (q.type === "blank")  return { texts: q.accept.map(a => a[0]), all: q.accept };
   if (q.type === "order")  return { order: q.correctOrder.map(id => q.items.find(i => i.id === id)) };
   return null;
 }
@@ -237,7 +465,7 @@ function startQuestion(code, room) {
 
 // Segundos de espera antes de revelar sola la respuesta cuando ya
 // contestaron todos. Pon null si prefieres revelar siempre a mano.
-const AUTO_REVEAL_MS = 1500;
+let AUTO_REVEAL_MS = 1500;
 
 function doReveal(code, room) {
   if (!room || room.phase !== "question") return;
@@ -281,7 +509,7 @@ function resync(socket, room, player) {
 }
 
 function maybeAutoReveal(code, room) {
-  if (AUTO_REVEAL_MS === null) return;
+  if (AUTO_REVEAL_MS === null || room.auto === false) return;
   if (room.phase !== "question" || QUESTIONS[room.q].type === "cloud") return;
   const online = [...room.players.values()].filter(p => p.online);
   if (online.length === 0) return;
@@ -296,15 +524,19 @@ function maybeAutoReveal(code, room) {
 io.on("connection", socket => {
 
   socket.on("host:create", cb => {
+    if (typeof cb !== "function") cb = () => {};
     const code = newCode();
-    rooms.set(code, { hostId: socket.id, players: new Map(), phase: "lobby", q: 0, startedAt: 0, cloud: [] });
+    rooms.set(code, { hostId: socket.id, players: new Map(), phase: "lobby", q: 0, startedAt: 0, cloud: [], auto: true });
     socket.join(code);
     socket.data = { role: "host", room: code };
     cb({ code });
     pushHost(code);
   });
 
-  socket.on("player:join", ({ code, name, color, glyph, uid }, cb) => {
+  socket.on("player:join", (data, cb) => {
+    // Un cliente sin función de respuesta no debe poder tumbar la sala.
+    if (typeof cb !== "function") cb = () => {};
+    const { code, name, color, glyph, uid } = data || {};
     const c = String(code || "").trim().toUpperCase();
     const room = rooms.get(c);
     if (!room) return cb({ error: "Esa sala no existe. Revisa las letras en la pantalla." });
@@ -370,6 +602,11 @@ io.on("connection", socket => {
   socket.on("host:reveal", () => {
     const code = socket.data && socket.data.room, room = rooms.get(code);
     if (room && room.hostId === socket.id) doReveal(code, room);
+  });
+
+  socket.on("host:auto", on => {
+    const room = rooms.get(socket.data && socket.data.room);
+    if (room && room.hostId === socket.id) room.auto = !!on;
   });
 
   socket.on("host:next", () => {
