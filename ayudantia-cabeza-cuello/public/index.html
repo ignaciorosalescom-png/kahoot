@@ -381,23 +381,29 @@ function fitOneLine(sel,maxRem,minRem){
 }
 
 // Ajusta la pantalla del proyector al alto disponible: parte grande y
-// va reduciendo solo si hace falta, así aprovecha el espacio sobrante.
+// reduce solo si hace falta. Mide el contenedor, no el documento: el
+// body tiene min-height 100vh y comparar contra él daba siempre
+// "no cabe", dejando todo en el tamaño mínimo.
 function fitToScreen(){
   const box=document.querySelector(".proj");
   if(!box) return;
-  const cabe=()=>document.documentElement.scrollHeight<=window.innerHeight-6;
+  box.style.setProperty("--k",1);
+  const top=box.getBoundingClientRect().top;
+  const disponible=window.innerHeight-top-52;   // 52 = barra de estado inferior
+  if(disponible<120) return;
+  const alto=()=>box.getBoundingClientRect().height;
   let k=1.9;
   box.style.setProperty("--k",k);
   let guard=0;
-  while(!cabe()&&k>0.5&&guard++<45){
+  while(alto()>disponible&&k>0.5&&guard++<45){
     k=Math.round((k-0.05)*100)/100;
     box.style.setProperty("--k",k);
   }
-  // Si ni al mínimo cabe, se reduce el enunciado.
+  // Si ni al mínimo entra, se reduce el enunciado.
   const q=box.querySelector(".q");
-  if(q&&!cabe()){
+  if(q&&alto()>disponible){
     let size=parseFloat(getComputedStyle(q).fontSize)/16, g2=0;
-    while(!cabe()&&size>0.95&&g2++<30){
+    while(alto()>disponible&&size>0.95&&g2++<30){
       size=Math.round((size-0.06)*100)/100;
       q.style.fontSize=size+"rem";
     }
