@@ -2,6 +2,7 @@ const express = require("express");
 const http = require("http");
 const path = require("path");
 const { Server } = require("socket.io");
+const QRCode = require("qrcode");
 
 const app = express();
 const server = http.createServer(app);
@@ -26,7 +27,7 @@ const QUESTIONS = [
       {id:"b",text:"Condrocráneo / neurocráneo cartilaginoso"},
       {id:"c",text:"Viscerocráneo"},
       {id:"d",text:"Prominencia frontonasal"}],
-    note:"" },
+    note:"La calota se forma por osificación intramembranosa a partir del desmocráneo. El condrocráneo, en cambio, da la base del cráneo por osificación endocondral." },
 
   { type:"match", title:"Huesos craneales",
     prompt:"Empareja el hueso craneal con la estructura que se relaciona.",
@@ -40,7 +41,7 @@ const QUESTIONS = [
       {id:"d1",text:"Glándula hipófisis",match:"o1"},
       {id:"d4",text:"Seno frontal",match:"o4"},
       {id:"d2",text:"Oído interno",match:"o2"}],
-    note:"" },
+    note:"Cada hueso aloja o delimita la estructura que lo acompaña: la silla turca del esfenoides guarda la hipófisis, y el peñasco del temporal contiene el oído interno." },
 
   { type:"match", title:"Craneosinostosis",
     prompt:"Empareja el tipo de craneosinostosis con la sutura que se fusiona prematuramente.",
@@ -54,7 +55,7 @@ const QUESTIONS = [
       {id:"d4",text:"Suturas coronales bilaterales",match:"o4"},
       {id:"d1",text:"Sutura sagital",match:"o1"},
       {id:"d3",text:"Sutura coronal unilateral",match:"o3"}],
-    note:"" },
+    note:"La regla es que el cráneo deja de crecer perpendicular a la sutura fusionada y compensa creciendo en paralelo. Por eso la sagital produce un cráneo alargado." },
 
   { type:"match", title:"Base del cráneo",
     prompt:"Empareja el foramen o conducto de la base del cráneo con el par craneal que pasa por él.",
@@ -70,27 +71,27 @@ const QUESTIONS = [
       {id:"d5",text:"V3 (mandibular)",match:"o5"},
       {id:"d3",text:"VII y VIII",match:"o3"},
       {id:"d2",text:"XII",match:"o2"}],
-    note:"" },
+    note:"Los pares IX, X y XI comparten el agujero yugular; el XII tiene conducto propio. Del trigémino, V2 sale por el redondo y V3 por el oval." },
 
   { type:"blank", title:"Venas emisarias",
     prompt:"Completa la frase.",
     text:"Las venas ___ son uniones venosas entre senos venosos, venas diploicas y venas craneales superficiales.",
     accept:[["emisarias","emisaria"]],
-    note:"" },
+    note:"Al comunicar el exterior con los senos durales, son una vía posible de propagación de infecciones hacia el interior del cráneo." },
 
   /* ── 2. Embriología facial y arcos faríngeos ── */
 
   { type:"cloud", title:"Cresta neural",
     prompt:"Indica un derivado de las células de la cresta neural en cabeza y cuello.",
-    note:"" },
+    note:"La cresta neural craneal aporta casi todo el esqueleto facial, además de ganglios, melanocitos, odontoblastos y meninges, algo que no ocurre en el resto del cuerpo." },
 
   { type:"cloud", title:"Primer arco",
     prompt:"Indica un derivado del primer arco faríngeo.",
-    note:"" },
+    note:"El primer arco depende del trigémino: músculos masticadores, martillo y yunque, y el esqueleto del maxilar y la mandíbula." },
 
   { type:"cloud", title:"Segundo arco",
     prompt:"Indica un derivado del segundo arco faríngeo.",
-    note:"" },
+    note:"El segundo arco depende del facial: músculos de la expresión facial, estribo, apófisis estiloides y el cuerpo y cuerno menor del hioides." },
 
   { type:"single", title:"Fisura palatina",
     prompt:"¿Qué procesos NO se fusionaron en un paciente con fisura palatina?",
@@ -99,7 +100,7 @@ const QUESTIONS = [
       {id:"b",text:"Crestas palatinas de los procesos maxilares",correct:true},
       {id:"c",text:"Procesos nasales mediales"},
       {id:"d",text:"Proceso maxilar con nasal lateral"}],
-    note:"" },
+    note:"La fisura palatina es un defecto del paladar secundario, por falta de fusión de las crestas palatinas. La fisura labial, en cambio, compromete el paladar primario." },
 
   { type:"order", title:"Formación del paladar",
     prompt:"Ordena la secuencia de fusión de los procesos faciales que forman el paladar.",
@@ -109,7 +110,7 @@ const QUESTIONS = [
       {id:"s4",text:"Fusión del paladar secundario con el tabique nasal"},
       {id:"s2",text:"Fusión del paladar primario con los procesos maxilares"}],
     correctOrder:["s1","s2","s3","s4"],
-    note:"" },
+    note:"El paladar primario se forma antes que el secundario, y el tabique nasal se fusiona al final, separando las cavidades nasales de la oral." },
 
   /* ── 3. Órbita y ojo ── */
 
@@ -121,13 +122,13 @@ const QUESTIONS = [
       ["ganglionares","células ganglionares"],
       ["amacrinas","centrífugas","interplexiformes"],
       ["neuroglia","glía","células gliales"]],
-    note:"" },
+    note:"La retina neural tiene tres neuronas en cadena (fotorreceptora, bipolar y ganglionar) más las de asociación que modulan, y las células de Müller como sostén." },
 
   { type:"blank", title:"Ora serrata",
     prompt:"Completa las dos casillas.",
     text:"La ___ es la zona límite entre la retina y la coroides. Delimita la parte visual y no visual, y marca el inicio del ___.",
     accept:[["ora serrata","oroserrata"],["cuerpo ciliar"]],
-    note:"" },
+    note:"La ora serrata marca dónde termina la retina visual y comienza la porción ciega, justo donde empieza el cuerpo ciliar." },
 
   { type:"multi", title:"Anillo tendinoso",
     prompt:"¿Qué estructuras que salen de la fisura orbitaria superior pasan por el anillo tendinoso?",
@@ -138,7 +139,7 @@ const QUESTIONS = [
       {id:"d",text:"Ramo nasociliar",correct:true},
       {id:"e",text:"Nervio abducens",correct:true},
       {id:"f",text:"Ramo inferior del oculomotor",correct:true}],
-    note:"" },
+    note:"Por el anillo pasan los nervios destinados a los músculos que nacen de él: ambos ramos del oculomotor, el nasociliar y el abducens. El troclear, el frontal y el lagrimal pasan por fuera." },
 
   { type:"single", title:"Movimientos oculares",
     prompt:"Al examinar los movimientos oculares, pides al paciente que dirija el ojo hacia medial (aducción) y luego hacia abajo. ¿Qué músculo estás evaluando principalmente?",
@@ -147,7 +148,7 @@ const QUESTIONS = [
       {id:"b",text:"Oblicuo inferior"},
       {id:"c",text:"Recto medial"},
       {id:"d",text:"Oblicuo superior",correct:true}],
-    note:"" },
+    note:"Con el ojo en aducción, el oblicuo superior queda alineado para deprimir. Por eso se explora la depresión en aducción y no en posición neutra." },
 
   { type:"match", title:"Humor acuoso",
     prompt:"Empareja la estructura ocular con su función.",
@@ -159,7 +160,7 @@ const QUESTIONS = [
       {id:"d2",text:"Drena el humor acuoso",match:"o2"},
       {id:"d3",text:"Regula la entrada de luz",match:"o3"},
       {id:"d1",text:"Produce el humor acuoso",match:"o1"}],
-    note:"" },
+    note:"El humor acuoso se produce en los procesos ciliares y drena por la malla trabecular. Si el drenaje falla, sube la presión intraocular." },
 
   { type:"single", title:"Conducto nasolagrimal",
     prompt:"Las lágrimas producidas en la órbita drenan hacia la cavidad nasal a través del conducto nasolagrimal. ¿En qué estructura específica desemboca este conducto?",
@@ -168,7 +169,7 @@ const QUESTIONS = [
       {id:"b",text:"Receso esfenoetmoidal"},
       {id:"c",text:"Meato nasal inferior",correct:true},
       {id:"d",text:"Meato nasal superior"}],
-    note:"" },
+    note:"Desemboca bajo el cornete inferior. Por eso al llorar aumenta la secreción nasal." },
 
   /* ── 4. Oído ── */
 
@@ -178,7 +179,7 @@ const QUESTIONS = [
     accept:[
       ["primera bolsa faríngea","1ra bolsa faríngea","bolsa faríngea","endodermo"],
       ["anterior"]],
-    note:"" },
+    note:"Deriva del receso tubotimpánico de la primera bolsa faríngea, de origen endodérmico, y comunica la caja timpánica con la nasofaringe." },
 
   { type:"match", title:"Oído interno",
     prompt:"Empareja la estructura del oído interno con su función.",
@@ -192,7 +193,7 @@ const QUESTIONS = [
       {id:"d1",text:"Produce la endolinfa",match:"o1"},
       {id:"d4",text:"Movimientos rotacionales",match:"o4"},
       {id:"d2",text:"Aceleración lineal horizontal",match:"o2"}],
-    note:"" },
+    note:"Las máculas detectan aceleración lineal según su orientación: el utrículo en el plano horizontal y el sáculo en el vertical. Las crestas ampulares detectan rotación." },
 
   /* ── 5. Cavidad oral, lengua y glándulas salivales ── */
 
@@ -203,7 +204,7 @@ const QUESTIONS = [
       {id:"b",text:"Facial (VII)",correct:true},
       {id:"c",text:"Glosofaríngeo (IX)"},
       {id:"d",text:"Hipogloso (XII)"}],
-    note:"" },
+    note:"Ojo con la distinción: la sensibilidad general de los dos tercios anteriores es del trigémino (lingual), y el gusto es del facial por la cuerda del tímpano." },
 
   { type:"multi", title:"Glándulas salivales",
     prompt:"¿Cuáles glándulas salivales tienen origen endodérmico?",
@@ -211,19 +212,19 @@ const QUESTIONS = [
       {id:"a",text:"Parótida"},
       {id:"b",text:"Submandibular",correct:true},
       {id:"c",text:"Sublingual",correct:true}],
-    note:"" },
+    note:"La parótida deriva del ectodermo del estomodeo; la submandibular y la sublingual, del endodermo del piso de la boca." },
 
   { type:"blank", title:"Palatogloso",
     prompt:"Completa las dos casillas.",
     text:"El músculo ___ marca el límite entre la cavidad oral y la orofaringe, y es el único músculo extrínseco de la lengua inervado por el ___.",
     accept:[["palatogloso"],["plexo faríngeo","plexo faringeo"]],
-    note:"" },
+    note:"Es la excepción entre los extrínsecos de la lengua: se comporta como músculo del velo del paladar y por eso lo inerva el plexo faríngeo, no el hipogloso." },
 
   { type:"blank", title:"Conducto parotídeo",
     prompt:"Completa las dos casillas.",
     text:"El músculo ___ es atravesado por el conducto parotídeo y es inervado por el nervio ___.",
     accept:[["buccinador"],["facial"]],
-    note:"" },
+    note:"El conducto parotídeo perfora el buccinador y desemboca frente al segundo molar superior. El buccinador es músculo de la expresión facial, de ahí la inervación facial." },
 
   { type:"match", title:"Tipo de secreción",
     prompt:"Empareja la glándula salival con su tipo de secreción.",
@@ -235,7 +236,7 @@ const QUESTIONS = [
       {id:"d3",text:"Mixta, con predominio mucoso",match:"o3"},
       {id:"d1",text:"Serosa pura",match:"o1"},
       {id:"d2",text:"Mixta, con predominio seroso",match:"o2"}],
-    note:"" },
+    note:"El predominio explica la consistencia de la saliva de cada glándula y también qué cálculos son más frecuentes en el conducto submandibular." },
 
   { type:"single", title:"Parasimpático parotídeo",
     prompt:"¿Qué nervio craneal aporta la inervación parasimpática para la secreción de la glándula parótida, a través del nervio petroso menor?",
@@ -244,7 +245,7 @@ const QUESTIONS = [
       {id:"b",text:"Nervio trigémino (V)"},
       {id:"c",text:"Nervio vago (X)"},
       {id:"d",text:"Nervio glosofaríngeo (IX)",correct:true}],
-    note:"" },
+    note:"La vía va del glosofaríngeo al petroso menor, hace sinapsis en el ganglio ótico y llega a la parótida por el auriculotemporal, que es del trigémino." },
 
   { type:"match", title:"Papilas linguales",
     prompt:"Empareja la papila lingual con su característica.",
@@ -258,7 +259,7 @@ const QUESTIONS = [
       {id:"d2",text:"Anteriores, con botones gustativos",match:"o2"},
       {id:"d1",text:"Las más abundantes, sin botones gustativos",match:"o1"},
       {id:"d3",text:"Forman la V lingual",match:"o3"}],
-    note:"" },
+    note:"Solo las filiformes carecen de botones gustativos, y son justamente las más numerosas." },
 
   /* ── 6. Faringe y cuello ── */
 
@@ -269,23 +270,23 @@ const QUESTIONS = [
       {id:"b",text:"En el interior de la vaina carotídea"},
       {id:"c",text:"Entre la lámina prevertebral y la fascia bucofaríngea",correct:true},
       {id:"d",text:"Superficial al músculo platisma"}],
-    note:"" },
+    note:"Ese espacio se extiende sin interrupción hasta el diafragma, por lo que una infección cervical profunda puede alcanzar el mediastino posterior." },
 
   { type:"tf", title:"Asa cervical",
     prompt:"El asa cervical, formada por las raíces C1 a C3, tiene como función principal inervar los músculos infrahioideos, excepto el tirohioideo.",
     answer:true,
-    note:"" },
+    note:"El tirohioideo es la excepción: lo inerva C1 viajando con el hipogloso, no el asa propiamente tal." },
 
   /* ── 7. Laringe ── */
 
-  { type:"single", title:"Arteria subclavia",
+  { type:"single", title:"Nervios laríngeos",
     prompt:"¿Qué estructura nerviosa da una vuelta a nivel de la arteria subclavia?",
     options:[
       {id:"a",text:"Nervio laríngeo superior derecho"},
       {id:"b",text:"Nervio laríngeo superior izquierdo"},
       {id:"c",text:"Nervio laríngeo recurrente derecho",correct:true},
       {id:"d",text:"Nervio laríngeo recurrente izquierdo"}],
-    note:"" },
+    note:"El recurrente derecho rodea la subclavia y el izquierdo el arco aórtico, diferencia que explica por qué el izquierdo es más largo y más vulnerable." },
 
   { type:"single", title:"Tensor de las cuerdas",
     prompt:"¿Qué músculo laríngeo tensa las cuerdas vocales verdaderas?",
@@ -294,7 +295,7 @@ const QUESTIONS = [
       {id:"b",text:"Vocal"},
       {id:"c",text:"Cricotiroideo",correct:true},
       {id:"d",text:"Tiroaritenoideo"}],
-    note:"" },
+    note:"El cricotiroideo es además el único intrínseco inervado por el laríngeo superior; todos los demás dependen del recurrente." },
 
   { type:"match", title:"Músculos laríngeos",
     prompt:"Empareja el músculo intrínseco de la laringe con su función.",
@@ -308,7 +309,7 @@ const QUESTIONS = [
       {id:"d1",text:"Tensor de las cuerdas vocales",match:"o1"},
       {id:"d4",text:"Relaja y acorta las cuerdas vocales",match:"o4"},
       {id:"d2",text:"Dilatador (abductor) de la glotis",match:"o2"}],
-    note:"" }
+    note:"El cricoaritenoideo posterior es el único abductor, así que su parálisis bilateral compromete la vía aérea." }
 
 ];
 
@@ -526,6 +527,15 @@ io.on("connection", socket => {
   socket.on("host:create", cb => {
     if (typeof cb !== "function") cb = () => {};
     const code = newCode();
+    // La dirección pública se deduce de la cabecera de la petición,
+    // así el QR funciona en local y en Render sin configurar nada.
+    const h = socket.handshake.headers || {};
+    const proto = (h["x-forwarded-proto"] || "https").split(",")[0].trim();
+    const url = h.origin || (h.host ? proto + "://" + h.host : "");
+    if (url) {
+      QRCode.toString(url, { type: "svg", margin: 1, width: 260, color: { dark: "#0E1A21", light: "#EFE7DB" } },
+        (err, svg) => { if (!err) io.to(socket.id).emit("host:qr", { svg, url }); });
+    }
     rooms.set(code, { hostId: socket.id, players: new Map(), phase: "lobby", q: 0, startedAt: 0, cloud: [], auto: true });
     socket.join(code);
     socket.data = { role: "host", room: code };

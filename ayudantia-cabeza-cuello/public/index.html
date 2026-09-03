@@ -36,8 +36,6 @@
   .card{background:var(--ink-2);border:1px solid var(--line);border-radius:14px;padding:20px}
   .card.tight{padding:12px 16px}
   .tight td{padding:5px 6px}
-  .proj .tight td{padding:7px 8px;font-size:clamp(1rem,1.6vw,1.35rem)}
-  .proj .tight td:last-child{font-size:clamp(1.3rem,2.3vw,1.9rem)}
   .code{font-family:var(--serif);font-size:clamp(2.8rem,10vw,5rem);letter-spacing:.12em;line-height:1;margin:6px 0}
   .meta{color:var(--muted);font-size:.9rem}
   .bar{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:18px;flex-wrap:wrap}
@@ -139,17 +137,30 @@
   #confetti i{position:absolute;top:-24px;width:10px;height:16px;opacity:.95;
     animation:fall linear forwards}
   @keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:.9}}
+  /* alternativas con color y figura */
+  .opt{display:flex;align-items:center;gap:14px}
+  .shape{flex:none;width:38px;height:38px;border-radius:9px;display:flex;align-items:center;
+    justify-content:center;color:rgba(14,26,33,.9);font-size:19px;line-height:1}
+  .proj .shape{width:46px;height:46px;font-size:23px}
+  .opt.dim{opacity:.42}
+  .qr{background:var(--bone);padding:10px;border-radius:14px;display:inline-block;line-height:0}
+  .qr svg{width:min(46vw,230px);height:auto;display:block}
+  .lobbygrid{display:flex;gap:26px;align-items:center;justify-content:center;flex-wrap:wrap;margin:10px 0 20px}
+  .url{font-size:.85rem;color:var(--muted);word-break:break-all;max-width:260px}
+
   .diag{position:fixed;left:0;right:0;bottom:0;background:var(--ink-3);border-top:1px solid var(--line);
     padding:8px 16px;font-size:.8rem;color:var(--muted);display:flex;gap:8px;align-items:center}
   .dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}
   .dot.ok{background:var(--ok)} .dot.bad{background:var(--bad)}
 
   /* proyector: todo más grande, solo en pantalla ancha */
-  .proj .q{font-size:clamp(1.4rem,2.6vw,2.2rem);line-height:1.35;max-width:40ch;margin-bottom:22px}
+  .proj .q{font-size:clamp(1.5rem,2.9vw,2.5rem);line-height:1.3;max-width:none;margin-bottom:24px}
+  .proj h2{font-size:clamp(1rem,1.5vw,1.25rem);font-family:var(--sans);font-weight:600;color:var(--muted)}
+  .proj .blank{font-size:clamp(1.25rem,2.4vw,2rem);max-width:none;line-height:1.9}
   .proj #secs{font-family:var(--serif);font-size:clamp(1.4rem,2.8vw,2.4rem);color:var(--bone);display:block;line-height:1.1}
   .proj .count{font-size:clamp(2.4rem,5vw,4rem)}
-  .proj td{font-size:clamp(1.05rem,1.8vw,1.5rem);padding:12px 8px}
-  .proj td:last-child{font-size:clamp(1.4rem,2.6vw,2.2rem)}
+  .proj td{font-size:clamp(.95rem,1.35vw,1.15rem);padding:7px 8px}
+  .proj td:last-child{font-size:clamp(1.05rem,1.7vw,1.4rem)}
   .proj .tag{font-size:1.05rem;padding:8px 16px}
 
   /* movimiento del marcador */
@@ -163,12 +174,10 @@
   .q-in>*:nth-child(5){animation-delay:.2s}
   .q-in>*:nth-child(6){animation-delay:.25s}
   #snd{padding:8px 12px;font-size:1.1rem;line-height:1}
-  .proj h2{font-size:clamp(1.6rem,3vw,2.4rem)}
-  .proj .opt{font-size:clamp(1.05rem,1.7vw,1.5rem);padding:18px 20px}
+  .proj .opt{font-size:clamp(1.05rem,1.7vw,1.45rem);padding:16px 18px}
   .proj .colcard{font-size:clamp(1rem,1.5vw,1.35rem);padding:16px 18px}
   .proj .colcard .badge{min-width:60px;height:44px;font-size:1.25rem}
   .proj .pair .origin{font-size:clamp(1rem,1.6vw,1.4rem)}
-  .proj .blank{font-size:clamp(1.7rem,4vw,3rem);max-width:26ch}
   .proj .note{font-size:1.05rem}
 
   /* la respuesta correcta, en negrita */
@@ -218,7 +227,7 @@ socket.on("connect",()=>{
 });
 socket.on("disconnect",()=>diag("bad","Se perdió la conexión. Reintentando…"));
 
-let role=null, myCode=null, myName="", autoReveal=true;
+let role=null, myCode=null, myName="", autoReveal=true, qrSvg="", qrUrl="";
 let myUid=null, joinData=null, hasJoined=false;
 try{ myUid=localStorage.getItem("ayu_uid"); }catch(e){}
 if(!myUid){ myUid=Math.random().toString(36).slice(2,10)+Date.now().toString(36);
@@ -265,7 +274,7 @@ function podiumHTML(players){
 // Revela el tercer lugar, luego el segundo y al final el primero.
 function runPodium(){
   const cols=[...document.querySelectorAll(".col-p[data-pos]")];
-  const order=[2,1,0], delays=[200,1200,2200];
+  const order=[2,1,0], delays=[900,3400,6000];
   order.forEach((pos,k)=>{
     const el=cols.find(c=>+c.dataset.pos===pos);
     if(!el) return;
@@ -320,10 +329,18 @@ function avatar(color,glyph,size){
   return `<span class="av" style="width:${size}px;height:${size}px;background:${c};font-size:${Math.round(size*0.55)}px">${esc(g)}</span>`;
 }
 
+function acceptedHTML(sol){
+  if(!sol||!sol.all) return "";
+  const extra=sol.all.map(a=>Array.isArray(a)?a.slice(1):[]).filter(a=>a.length);
+  if(!extra.length) return "";
+  return `<p class="meta" style="margin-top:12px">También se aceptó: ${
+    extra.map(a=>a.map(esc).join(", ")).join(" · ")}</p>`;
+}
 function blankHTML(text,sols){
+  if(!sols) sols=null;
   const parts=String(text).split("___");
   return parts.map((t,i)=>esc(t).replace(/\n/g,"<br>")+
-    (i<parts.length-1?(sols?`<u class="sol">${esc(sols[i])}</u>`:`<u>${i+1}</u>`):"")).join("");
+    (i<parts.length-1?((sols&&sols[i]!==undefined)?`<u class="sol">${esc(sols[i])}</u>`:`<u>${i+1}</u>`):"")).join("");
 }
 const FILLER_C=/\b(de|del|la|las|los|el|un|una|y|o|en|celula|celulas|celular|celulares|tipo|tipos)\b/g;
 function norm(s){
@@ -334,6 +351,12 @@ function norm(s){
 function similarClient(alts,val){
   const g=norm(val); if(!g) return false;
   return alts.some(a=>norm(a)===g);
+}
+
+const OPT_COLORS=["#E2604A","#5B8DD9","#E0A93C","#7FB069","#8E7CC8","#43A69C"];
+const OPT_SHAPES=["\u25B2","\u25C6","\u25CF","\u25A0","\u2605","\u2B23"];
+function shape(i){
+  return `<span class="shape" style="background:${OPT_COLORS[i%6]}">${OPT_SHAPES[i%6]}</span>`;
 }
 
 /* ─────────── Sonido (solo en el proyector) ─────────── */
@@ -465,6 +488,7 @@ function waiting(t,s){
 }
 
 /* ─────────── Estado del proyector ─────────── */
+socket.on("host:qr",d=>{ qrSvg=d.svg||""; qrUrl=d.url||""; if(role==="host"&&hostPhase==="lobby") hostLobby(); });
 socket.on("host:state",s=>{
   hostPlayers=s.players; hostPhase=s.phase; hostStarted=s.startedAt; hostCloud=s.cloud||[];
   if(role==="host"){
@@ -475,7 +499,13 @@ socket.on("host:state",s=>{
 function hostLobby(){
   app.innerHTML=`<div class="narrow" style="text-align:center">
     <p class="meta" style="margin:0">Código de la sala</p><div class="code">${myCode}</div>
-    <p class="sub" style="margin:12px auto 24px">Los alumnos abren esta misma dirección, eligen “Entrar como alumno” y escriben el código.</p>
+    <div class="lobbygrid">
+      ${qrSvg?`<div><div class="qr">${qrSvg}</div>
+        <p class="url" style="margin:8px auto 0">${esc(qrUrl)}</p></div>`:``}
+      <p class="sub" style="margin:0;max-width:300px;text-align:left">
+        ${qrSvg?"Escanea el código con la cámara del teléfono, elige “Entrar como alumno” y escribe las cuatro letras."
+               :"Los alumnos abren esta misma dirección, eligen “Entrar como alumno” y escriben el código."}</p>
+    </div>
     <div class="card"><div class="meta">${hostPlayers.length} ${hostPlayers.length===1?"persona conectada":"personas conectadas"}</div>
       <div class="players">${hostPlayers.map(p=>`<span class="tag" style="display:inline-flex;align-items:center;gap:8px">${avatar(p.c,p.g,34)}${esc(p.name)}</span>`).join("")||`<span class="meta">Esperando…</span>`}</div></div>
     <div class="row" style="justify-content:center;margin-top:22px">
@@ -490,8 +520,7 @@ function hostLobby(){
 }
 
 function hostHeader(rightHTML){
-  return `<div class="bar"><div><span class="meta">Pregunta ${Q.index+1} de ${Q.total}</span>
-    <h2 style="margin-top:4px">${esc(Q.title)}</h2></div>
+  return `<div class="bar"><div><h2 style="margin:0">Pregunta ${Q.index+1} de ${Q.total} · ${esc(Q.title)}</h2></div>
     <div style="text-align:right">${rightHTML}<span class="meta" id="secs">0s</span></div></div>`;
 }
 // El contador se actualiza sin volver a dibujar la pantalla,
@@ -549,8 +578,10 @@ function hostQuestion(){
     let body="";
     if(Q.type==="match") body=columnsHTML(false);
     else if(Q.type==="single"||Q.type==="multi")
-      body=`<div class="stack">${Q.options.map(o=>`<div class="opt">${esc(o.text)}</div>`).join("")}</div>`;
-    else if(Q.type==="tf") body=`<div class="row" style="gap:16px"><div class="opt" style="flex:1;text-align:center">Verdadero</div><div class="opt" style="flex:1;text-align:center">Falso</div></div>`;
+      body=`<div class="stack">${Q.options.map((o,i)=>`<div class="opt">${shape(i)}${esc(o.text)}</div>`).join("")}</div>`;
+    else if(Q.type==="tf") body=`<div class="row" style="gap:16px">
+      <div class="opt" style="flex:1">${shape(3)}Verdadero</div>
+      <div class="opt" style="flex:1">${shape(0)}Falso</div></div>`;
     else if(Q.type==="blank") body=`<div class="blank">${blankHTML(Q.text)}</div>`;
     else if(Q.type==="order") body=`<div class="stack">${Q.items.map(i=>`<div class="pair"><div class="seq">·</div><div class="body"><span class="origin">${esc(i.text)}</span></div></div>`).join("")}</div>`;
     app.innerHTML=`<div class="wide proj">${hostHeader(`<div class="count" id="cnt">0/0</div>`)}
@@ -624,8 +655,8 @@ socket.on("question",q=>{
 
 /* ─────────── Pantalla del alumno ─────────── */
 function playerQuestion(){
-  const head=`<span class="meta">Pregunta ${Q.index+1} de ${Q.total}</span>
-    <h2 style="margin-top:4px">${esc(Q.title)}</h2><p class="q">${esc(Q.prompt)}</p>`;
+  const head=`<span class="meta">Pregunta ${Q.index+1} de ${Q.total} · ${esc(Q.title)}</span>
+    <p class="q" style="font-size:1.25rem;margin:8px 0 18px">${esc(Q.prompt)}</p>`;
   let body="", ready=false;
 
   if(Q.type==="match"){
@@ -642,20 +673,20 @@ function playerQuestion(){
   }
   else if(Q.type==="single"){
     ready=!!ans;
-    body=`<div class="stack">${Q.options.map(o=>`
-      <button class="opt ${ans===o.id?"sel":""}" data-s="${o.id}">${esc(o.text)}</button>`).join("")}</div>`;
+    body=`<div class="stack">${Q.options.map((o,i)=>`
+      <button class="opt ${ans===o.id?"sel":""}" data-s="${o.id}">${shape(i)}${esc(o.text)}</button>`).join("")}</div>`;
   }
   else if(Q.type==="tf"){
     ready=ans!==null;
-    body=`<div class="row" style="gap:12px">
-      <button class="opt ${ans===true?"sel":""}" data-tf="1" style="flex:1;text-align:center">Verdadero</button>
-      <button class="opt ${ans===false?"sel":""}" data-tf="0" style="flex:1;text-align:center">Falso</button></div>`;
+    body=`<div class="stack">
+      <button class="opt ${ans===true?"sel":""}" data-tf="1">${shape(3)}Verdadero</button>
+      <button class="opt ${ans===false?"sel":""}" data-tf="0">${shape(0)}Falso</button></div>`;
   }
   else if(Q.type==="multi"){
     ready=ans.length>0;
     body=`<p class="meta" style="margin:-8px 0 12px">Puedes marcar más de una. Los errores descuentan.</p>
-      <div class="stack">${Q.options.map(o=>`
-      <button class="opt ${ans.includes(o.id)?"sel":""}" data-m="${o.id}"><span class="box"></span>${esc(o.text)}</button>`).join("")}</div>`;
+      <div class="stack">${Q.options.map((o,i)=>`
+      <button class="opt ${ans.includes(o.id)?"sel":""}" data-m="${o.id}">${shape(i)}<span class="box"></span>${esc(o.text)}</button>`).join("")}</div>`;
   }
   else if(Q.type==="blank"){
     if(!Array.isArray(ans)) ans=new Array(Q.blanks||1).fill("");
@@ -688,9 +719,13 @@ function playerQuestion(){
     return;
   }
 
+  const oneTap=(Q.type==="single"||Q.type==="tf");
   app.innerHTML=`<div class="narrow">${head}${body}
-    <button class="primary" id="send" style="width:100%;margin-top:20px;padding:15px" ${ready&&!sent?"":"disabled"}>
-      ${sent?"Respuesta enviada":"Enviar respuesta"}</button></div>`;
+    ${oneTap
+      ? (sent?`<p class="meta" style="text-align:center;margin-top:18px">Respuesta enviada. Espera la corrección.</p>`
+             :`<p class="meta" style="text-align:center;margin-top:18px">Toca tu respuesta.</p>`)
+      : `<button class="primary" id="send" style="width:100%;margin-top:20px;padding:15px" ${ready&&!sent?"":"disabled"}>
+          ${sent?"Respuesta enviada":"Enviar respuesta"}</button>`}</div>`;
   bindPlayer();
 }
 function bindPlayer(){
@@ -699,8 +734,11 @@ function bindPlayer(){
   app.querySelectorAll("[data-d]").forEach(el=>el.onclick=()=>{
     for(const k in ans) if(ans[k]===el.dataset.d) delete ans[k];
     ans[activeOrigin]=el.dataset.d; activeOrigin=null; playerQuestion(); });
-  app.querySelectorAll("[data-s]").forEach(el=>el.onclick=()=>{ ans=el.dataset.s; playerQuestion(); });
-  app.querySelectorAll("[data-tf]").forEach(el=>el.onclick=()=>{ ans=el.dataset.tf==="1"; playerQuestion(); });
+  // Una sola alternativa: se envía en el mismo toque, sin botón extra.
+  app.querySelectorAll("[data-s]").forEach(el=>el.onclick=()=>{
+    if(sent) return; ans=el.dataset.s; submit(); });
+  app.querySelectorAll("[data-tf]").forEach(el=>el.onclick=()=>{
+    if(sent) return; ans=el.dataset.tf==="1"; submit(); });
   app.querySelectorAll("[data-m]").forEach(el=>el.onclick=()=>{
     const id=el.dataset.m;
     ans = ans.includes(id) ? ans.filter(x=>x!==id) : ans.concat(id);
@@ -730,14 +768,15 @@ socket.on("host:reveal",d=>{
   hostPhase="reveal";
   let body="";
   if(d.type==="match") body=columnsHTML(true,d.solution);
-  else if(d.type==="single") body=`<div class="stack">${Q.options.map(o=>`
-      <div class="opt ${o.id===d.solution.id?"right":""}">${esc(o.text)}</div>`).join("")}</div>`;
+  else if(d.type==="single") body=`<div class="stack">${Q.options.map((o,i)=>`
+      <div class="opt ${o.id===d.solution.id?"right":"dim"}">${shape(i)}${esc(o.text)}</div>`).join("")}</div>`;
   else if(d.type==="tf") body=`<div class="row" style="gap:16px">
-      <div class="opt ${d.solution.answer?"right":""}" style="flex:1;text-align:center">Verdadero</div>
-      <div class="opt ${!d.solution.answer?"right":""}" style="flex:1;text-align:center">Falso</div></div>`;
-  else if(d.type==="multi") body=`<div class="stack">${Q.options.map(o=>`
-      <div class="opt ${d.solution.ids.includes(o.id)?"right":""}">${esc(o.text)}</div>`).join("")}</div>`;
-  else if(d.type==="blank") body=`<div class="blank">${blankHTML(Q.text,d.solution.texts)}</div>`;
+      <div class="opt ${d.solution.answer?"right":"dim"}" style="flex:1">${shape(3)}Verdadero</div>
+      <div class="opt ${!d.solution.answer?"right":"dim"}" style="flex:1">${shape(0)}Falso</div></div>`;
+  else if(d.type==="multi") body=`<div class="stack">${Q.options.map((o,i)=>`
+      <div class="opt ${d.solution.ids.includes(o.id)?"right":"dim"}">${shape(i)}${esc(o.text)}</div>`).join("")}</div>`;
+  else if(d.type==="blank") body=`<div class="blank">${blankHTML(Q.text,d.solution.texts)}</div>
+      ${acceptedHTML(d.solution)}`;
   else if(d.type==="order") body=`<div class="stack">${d.solution.order.map((i,k)=>`
       <div class="pair right"><div class="seq on">${k+1}</div><div class="body"><span class="origin">${esc(i.text)}</span></div></div>`).join("")}</div>`;
   else if(d.type==="cloud") body=cloudHTML(d.cloud);
@@ -773,14 +812,14 @@ socket.on("reveal",d=>{
         <div class="body"><span class="origin">${esc(o.label)}</span>
         <span class="slot filled">${mine?esc(mine.text):"Sin respuesta"}</span>
         ${good?`<span class="verdict right">Correcto</span>`:`<span class="verdict wrong">Era: ${esc(sol.text)}</span>`}</div></div>`;}).join("")}</div>`;
-  else if(d.type==="single") body=`<div class="stack">${Q.options.map(o=>`
-      <div class="opt ${o.id===d.solution.id?"right":(o.id===g?"wrong":"")}">${esc(o.text)}</div>`).join("")}</div>`;
-  else if(d.type==="tf") body=`<div class="row" style="gap:12px">
-      <div class="opt ${d.solution.answer?"right":(g===true?"wrong":"")}" style="flex:1;text-align:center">Verdadero</div>
-      <div class="opt ${!d.solution.answer?"right":(g===false?"wrong":"")}" style="flex:1;text-align:center">Falso</div></div>`;
-  else if(d.type==="multi") body=`<div class="stack">${Q.options.map(o=>{
+  else if(d.type==="single") body=`<div class="stack">${Q.options.map((o,i)=>`
+      <div class="opt ${o.id===d.solution.id?"right":(o.id===g?"wrong":"dim")}">${shape(i)}${esc(o.text)}</div>`).join("")}</div>`;
+  else if(d.type==="tf") body=`<div class="stack">
+      <div class="opt ${d.solution.answer?"right":(g===true?"wrong":"dim")}">${shape(3)}Verdadero</div>
+      <div class="opt ${!d.solution.answer?"right":(g===false?"wrong":"dim")}">${shape(0)}Falso</div></div>`;
+  else if(d.type==="multi") body=`<div class="stack">${Q.options.map((o,i)=>{
       const picked=Array.isArray(g)&&g.includes(o.id), right=d.solution.ids.includes(o.id);
-      return `<div class="opt ${right?"right":(picked?"wrong":"")}">
+      return `<div class="opt ${right?"right":(picked?"wrong":"dim")}">${shape(i)}
         <span class="box" style="${picked?"background:var(--bone);border-color:var(--bone)":""}"></span>${esc(o.text)}</div>`;}).join("")}</div>`;
   else if(d.type==="blank"){
     const mine=Array.isArray(g)?g:[g];
@@ -788,9 +827,9 @@ socket.on("reveal",d=>{
       <div class="stack" style="margin-top:16px">${d.solution.texts.map((t,i)=>{
         const ok=d.solution.all[i].some(a=>norm(a)===norm(mine[i]||""))||similarClient(d.solution.all[i],mine[i]);
         return `<div class="pair ${ok?"right":"wrong"}"><div class="seq on">${i+1}</div>
-          <div class="body"><span class="origin">${mine[i]?esc(mine[i]):"Sin respuesta"}</span>
+          <div class="body"><span class="origin">${(mine[i]!==undefined&&mine[i]!==null&&String(mine[i]).trim())?esc(mine[i]):"Sin respuesta"}</span>
           ${ok?`<span class="verdict right">Correcto</span>`:`<span class="verdict wrong">Era: ${esc(t)}</span>`}</div></div>`;
-      }).join("")}</div>`;
+      }).join("")}</div>${acceptedHTML(d.solution)}`;
   }
   else if(d.type==="order") body=`<div class="stack">${d.solution.order.map((i,k)=>{
       const mine=Array.isArray(g)&&g[k]===i.id;
