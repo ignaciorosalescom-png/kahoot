@@ -188,8 +188,8 @@
   .proj .q{font-size:clamp(1.5rem,2.9vw,2.5rem);line-height:1.3;max-width:none;margin-bottom:24px}
   .proj h2{font-size:clamp(1rem,1.5vw,1.25rem);font-family:var(--sans);font-weight:600;color:var(--muted)}
   .proj .blank{font-size:clamp(1.25rem,2.4vw,2rem);max-width:none;line-height:1.9}
-  .proj #secs{font-family:var(--serif);font-size:clamp(1.4rem,2.8vw,2.4rem);color:var(--bone);display:block;line-height:1.1}
-  .proj .count{font-size:clamp(2.4rem,5vw,4rem)}
+  .proj #secs{font-family:var(--serif);font-size:clamp(1.2rem,2.2vw,1.9rem);color:var(--bone);line-height:1.1}
+  .proj .count{font-size:clamp(1.7rem,3vw,2.6rem)}
   .proj td{font-size:clamp(.95rem,1.35vw,1.15rem);padding:7px 8px}
   .proj td:last-child{font-size:clamp(1.05rem,1.7vw,1.4rem)}
   .proj .tag{font-size:1.05rem;padding:8px 16px}
@@ -380,23 +380,23 @@ function fitOneLine(sel,maxRem,minRem){
   }
 }
 
-// Compacta la pantalla del proyector hasta que quepa sin scroll.
+// Ajusta la pantalla del proyector al alto disponible: parte grande y
+// va reduciendo solo si hace falta, así aprovecha el espacio sobrante.
 function fitToScreen(){
   const box=document.querySelector(".proj");
   if(!box) return;
-  let k=1;
-  box.style.setProperty("--k",k);
   const cabe=()=>document.documentElement.scrollHeight<=window.innerHeight-6;
+  let k=1.9;
+  box.style.setProperty("--k",k);
   let guard=0;
-  while(!cabe()&&k>0.5&&guard++<40){
-    k=Math.round((k-0.04)*100)/100;
+  while(!cabe()&&k>0.5&&guard++<45){
+    k=Math.round((k-0.05)*100)/100;
     box.style.setProperty("--k",k);
   }
-  // Si aun compactado no cabe, se reduce el enunciado un poco más.
+  // Si ni al mínimo cabe, se reduce el enunciado.
   const q=box.querySelector(".q");
   if(q&&!cabe()){
-    let size=parseFloat(getComputedStyle(q).fontSize)/16;
-    let g2=0;
+    let size=parseFloat(getComputedStyle(q).fontSize)/16, g2=0;
     while(!cabe()&&size>0.95&&g2++<30){
       size=Math.round((size-0.06)*100)/100;
       q.style.fontSize=size+"rem";
@@ -589,7 +589,8 @@ function hostLobby(){
 
 function hostHeader(rightHTML){
   return `<div class="bar"><div><h2 style="margin:0">Pregunta ${Q.index+1} de ${Q.total} · ${esc(Q.title)}</h2></div>
-    <div style="text-align:right">${rightHTML}<span class="meta" id="secs">0s</span></div></div>`;
+    <div style="display:flex;align-items:baseline;gap:16px">${rightHTML}
+      <span class="meta" id="secs">0s</span></div></div>`;
 }
 // El contador se actualiza sin volver a dibujar la pantalla,
 // para que las animaciones no se reinicien cada segundo.
