@@ -85,7 +85,7 @@
   .blank u{text-decoration:none;border-bottom:3px solid #43A69C;padding:0 .8em}
 
   /* columnas del proyector */
-  .cols{position:relative;display:grid;grid-template-columns:1fr 120px 1fr;gap:0;align-items:start;margin-top:18px}
+  .cols{position:relative;display:grid;grid-template-columns:1fr calc(110px*var(--k,1)) 1fr;gap:0;align-items:start;margin-top:18px}
   .col{display:flex;flex-direction:column;gap:14px}
   .colcard{border:1px solid var(--line);border-radius:12px;background:var(--ink-2);padding:14px 16px;min-height:70px;
     display:flex;align-items:center;gap:12px}
@@ -153,14 +153,7 @@
   .revhead{grid-column:1/-1;margin-bottom:2px}
   .revealwrap.solo{grid-template-columns:1fr}
   .revealwrap.solo .revright{max-width:280px}
-  .revealwrap .q{font-size:clamp(1.1rem,1.9vw,1.55rem);margin-bottom:14px}
-  .revealwrap .opt{padding:10px 14px;font-size:clamp(.95rem,1.35vw,1.15rem)}
-  .revealwrap .shape{width:32px;height:32px;font-size:16px;border-radius:8px}
-  .revealwrap .blank{font-size:clamp(1.1rem,1.9vw,1.5rem);line-height:1.8}
   .revealwrap .note{font-size:.95rem;margin-top:14px}
-  .revealwrap .pair .body{min-height:48px;padding:8px 12px}
-  .revealwrap .pair .num,.revealwrap .seq{min-width:52px;font-size:1rem}
-  .revealwrap .colcard{padding:10px 14px;min-height:54px;font-size:1rem}
   .revealwrap .card{margin-top:0}
   .revealwrap td{font-size:.95rem;padding:5px 6px}
   .revealwrap td:last-child{font-size:1.1rem}
@@ -177,7 +170,6 @@
   .proj .col{gap:calc(11px*var(--k))}
   .proj .q{margin-bottom:calc(16px*var(--k))}
   .proj .bar{margin-bottom:calc(12px*var(--k))}
-  .proj .blank{line-height:1.75}
   .proj .row{margin-top:calc(16px*var(--k)) !important}
   .diag{position:fixed;left:0;right:0;bottom:0;background:var(--ink-3);border-top:1px solid var(--line);
     padding:8px 16px;font-size:.8rem;color:var(--muted);display:flex;gap:8px;align-items:center}
@@ -185,9 +177,9 @@
   .dot.ok{background:var(--ok)} .dot.bad{background:var(--bad)}
 
   /* proyector: todo más grande, solo en pantalla ancha */
-  .proj .q{font-size:clamp(1.5rem,2.9vw,2.5rem);line-height:1.3;max-width:none;margin-bottom:24px}
+  .proj .q{font-size:calc(1.55rem*var(--k));line-height:1.28;max-width:none}
   .proj h2{font-size:clamp(1rem,1.5vw,1.25rem);font-family:var(--sans);font-weight:600;color:var(--muted)}
-  .proj .blank{font-size:clamp(1.25rem,2.4vw,2rem);max-width:none;line-height:1.9}
+  .proj .blank{font-size:calc(1.35rem*var(--k));max-width:none;line-height:1.85}
   .proj #secs{font-family:var(--serif);font-size:clamp(1.2rem,2.2vw,1.9rem);color:var(--bone);line-height:1.1}
   .proj .count{font-size:clamp(1.7rem,3vw,2.6rem)}
   .proj td{font-size:clamp(.95rem,1.35vw,1.15rem);padding:7px 8px}
@@ -207,7 +199,7 @@
   #snd{padding:8px 12px;font-size:1.1rem;line-height:1}
   .proj .colcard .badge{min-width:calc(52px*var(--k));height:calc(38px*var(--k));font-size:calc(1.1rem*var(--k))}
   .proj .pair .origin{font-size:calc(1.15rem*var(--k))}
-  .proj .note{font-size:1.05rem}
+  .proj .note{font-size:calc(.95rem*var(--k));padding:calc(10px*var(--k)) calc(14px*var(--k))}
 
   /* la respuesta correcta, en negrita */
   .opt.right,.colcard.right{font-weight:700}
@@ -365,26 +357,11 @@ function acceptedHTML(sol){
   return `<p class="meta" style="margin-top:12px">También se aceptó: ${
     extra.map(a=>a.map(esc).join(", ")).join(" · ")}</p>`;
 }
-// Reduce el enunciado hasta que entre en una sola línea. Si aun en el
-// tamaño mínimo no cabe, lo deja envolver: más chico sería ilegible.
-function fitOneLine(sel,maxRem,minRem){
-  const el=document.querySelector(sel);
-  if(!el) return;
-  let size=maxRem;
-  el.style.fontSize=size+"rem";
-  const lh=()=>parseFloat(getComputedStyle(el).lineHeight)||size*16*1.3;
-  let guard=0;
-  while(el.scrollHeight>lh()*1.35&&size>minRem&&guard++<60){
-    size=Math.round((size-0.06)*100)/100;
-    el.style.fontSize=size+"rem";
-  }
-}
-
 // Ajusta la pantalla del proyector al alto disponible: parte grande y
 // reduce solo si hace falta. Mide el contenedor, no el documento: el
 // body tiene min-height 100vh y comparar contra él daba siempre
 // "no cabe", dejando todo en el tamaño mínimo.
-function fitToScreen(){
+function fitToScreen(max){
   const box=document.querySelector(".proj");
   if(!box) return;
   box.style.setProperty("--k",1);
@@ -392,21 +369,12 @@ function fitToScreen(){
   const disponible=window.innerHeight-top-52;   // 52 = barra de estado inferior
   if(disponible<120) return;
   const alto=()=>box.getBoundingClientRect().height;
-  let k=1.9;
+  let k=Math.min(max||2.7, disponible/260);
   box.style.setProperty("--k",k);
   let guard=0;
   while(alto()>disponible&&k>0.5&&guard++<45){
     k=Math.round((k-0.05)*100)/100;
     box.style.setProperty("--k",k);
-  }
-  // Si ni al mínimo entra, se reduce el enunciado.
-  const q=box.querySelector(".q");
-  if(q&&alto()>disponible){
-    let size=parseFloat(getComputedStyle(q).fontSize)/16, g2=0;
-    while(alto()>disponible&&size>0.95&&g2++<30){
-      size=Math.round((size-0.06)*100)/100;
-      q.style.fontSize=size+"rem";
-    }
   }
 }
 
@@ -665,7 +633,7 @@ function hostQuestion(){
       <button id="snd" title="Sonido">${soundOn?"&#128266;":"&#128263;"}</button></div></div>`;
   }
   hostTick();
-  fitOneLine(".proj .q",2.5,1.2); fitToScreen();
+  fitToScreen();
   document.getElementById("rev").onclick=()=>socket.emit("host:reveal");
   const sb=document.getElementById("snd");
   if(sb) sb.onclick=()=>{ soundOn=!soundOn; sb.innerHTML=soundOn?"&#128266;":"&#128263;"; audioReady(); };
@@ -722,8 +690,6 @@ function drawWires(){
 window.addEventListener("resize",()=>{
   if(role!=="host") return;
   requestAnimationFrame(drawWires);
-  if(hostPhase==="question") fitOneLine(".proj .q",2.5,1.2);
-  else if(hostPhase==="reveal") fitOneLine(".revealwrap .q",1.55,1);
   fitToScreen();
 });
 
@@ -874,7 +840,7 @@ socket.on("host:reveal",d=>{
       ${solo?``:`<p class="meta" style="margin:0 0 6px">Ranking</p>${rankingHTML(d.players,6)}`}
       <button class="primary" id="n" style="width:100%;margin-top:14px">Continuar</button></div></div>`;
   document.getElementById("n").onclick=()=>socket.emit("host:next");
-  fitOneLine(".revealwrap .q",1.55,1); fitToScreen();
+  fitToScreen(1.7);
   if(d.type==="match") setTimeout(()=>requestAnimationFrame(drawWires),460);
   animateScores(); animateRanking(); S.reveal();
 });
